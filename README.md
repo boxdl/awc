@@ -1,67 +1,69 @@
-# AWC 区块浏览器
+# AWC Block Explorer
 
-单文件、零依赖的 AWC（TRON 兼容 DPoS）区块浏览器。浏览器直接打开 `explorer.html` 即用，无需构建、无需后端、无需 npm。
+Single-file, zero-dependency block explorer for the AWC chain (TRON-compatible DPoS). Just open `explorer.html` in a browser — no build step, no backend, no npm.
 
-![node](https://img.shields.io/badge/node-无-blue) ![deps](https://img.shields.io/badge/依赖-0-green)
+**English** | [中文](README_zh.md)
 
-## 功能
+![node](https://img.shields.io/badge/node-none-blue) ![deps](https://img.shields.io/badge/dependencies-0-green)
 
-| 页面 | 路由 | 内容 |
+## Features
+
+| View | Route | Description |
 |---|---|---|
-| 首页 | `#/` | 链状态（高度 / 出块时间 / 平均出块间隔 / 近40块交易火花线 / 出块者分布）+ 最新区块表（含间隔列）+ 最近交易（类型分布），4 秒增量自动刷新 |
-| 历史区块 | `#/blocks/<高度>` | 20 块/页翻页浏览 |
-| 区块详情 | `#/block/<高度\|hash>` | 区块头（含见证签名）+ 区块内交易表 + 前后块翻页 + 原始 JSON |
-| 交易详情 | `#/tx/<hash>` | 确认数（≥19 最终确认）、类型、金额、过期时间、执行结果、原始 JSON；Hash 查不到时自动回退按区块打开 |
-| 地址 | `#/addr/<T...>` | 余额 / 激活 / 带宽 / nonce + SR 徽章 + 交易统计 + 冻结与资源代理明细 + 投票明细 + 最近 100 笔（收付方向） |
-| 见证人 | `#/witness` | 活跃数 / epoch / 总票数 / 注册费 + SR 列表（票数条、近30块实时出块、累计出块漏块、在岗状态） |
-| 网络 | `#/network` | 本节点信息 + P2P 对等节点表（高度差异、入站出站）+ 链参数表（27 项） |
-| 资产 | `#/assets` | 发行代币 / 本地钱包（余额+持仓）/ 智能合约（Gas、VM 开关）+ 近50块代币与合约活动扫描 |
+| Home | `#/` | Chain status (height / block time / average interval / 40-block tx sparkline / producer distribution) + latest blocks (with interval column) + recent txs (type chips), 4s incremental auto-refresh |
+| Block list | `#/blocks/<height>` | 20 blocks per page with pagination |
+| Block detail | `#/block/<height\|hash>` | Header (incl. witness signature) + block tx table + prev/next navigation + raw JSON |
+| Transaction | `#/tx/<hash>` | Confirmations (final at ≥19), type, amount, expiration, result, raw JSON; falls back to block lookup when a block hash is entered |
+| Address | `#/addr/<T...>` | Balance / activation / bandwidth / nonce + SR badge + tx statistics + freeze & resource delegation details + vote details + latest 100 txs with in/out direction |
+| Witnesses | `#/witness` | Active count / epoch / total votes / registration fee + SR table (vote bars, live 30-block production count, produced/missed, job status) |
+| Network | `#/network` | Node info + P2P peer table (height delta, in/outbound) + full chain parameter table (27 items) |
+| Assets | `#/assets` | Issued tokens / local wallets (balance + holdings) / smart contracts (gas, VM flags) + last-50-block token & contract activity scan |
 
-搜索框自动识别：纯数字 → 区块高度；64 位 hex → 交易（失败转区块）；`T` 开头 → 地址。
+Search auto-detects: plain number → block height; 64-char hex → transaction (falls back to block); `T...` → address.
 
-## 快速开始
+## Quick start
 
-**方式一：直接打开**
+**Option 1: open directly**
 
 ```bash
-# 下载 explorer.html 后双击，或
-python3 -m http.server 8000   # 然后访问 http://localhost:8000/explorer.html
+# just double-click explorer.html, or
+python3 -m http.server 8000   # then visit http://localhost:8000/explorer.html
 ```
 
-**方式二：GitHub Pages**
+**Option 2: GitHub Pages**
 
-仓库 Settings → Pages → Source 选 `main` 分支根目录，发布后访问：
+Repo Settings → Pages → Source: `main` branch root, then visit:
 
 ```
-https://<你的用户名>.github.io/<仓库名>/explorer.html
+https://<your-username>.github.io/<repo>/explorer.html
 ```
 
-## RPC 配置
+## RPC configuration
 
-- 默认连接 `http://mc.wanys.xyz:8900`，页面右上角可切换节点（公网 / 本地）并记忆（localStorage）
-- 支持 `file://` 直接打开（节点 CORS 为 `*`）
-- 需要现代浏览器（使用 BigInt、`?.` 等特性，Chrome/Edge/Firefox/Safari 近两年版本均可）
+- Defaults to `http://mc.wanys.xyz:8900`; switch nodes from the top-right control (persisted in localStorage)
+- Works from `file://` (node CORS is `*`)
+- Requires a modern browser (BigInt etc. — any Chrome/Edge/Firefox/Safari from the last two years)
 
-## 接口依赖
+## API dependencies
 
-页面通过两类接口读数据（均为只读）：
+All data is read-only, from two endpoint groups:
 
-| 类型 | 地址 | 用途 |
+| Type | Address | Used for |
 |---|---|---|
-| TronRPC | RPC 端口（如 `:8900`） | `/wallet/*`：区块、交易、账户、见证人、链参数、代币 |
-| REST | **RPC 端口 − 100**（如 `:8800`） | `/api/*`：P2P 节点表、本地钱包、合约列表 |
+| TronRPC | RPC port (e.g. `:8900`) | `/wallet/*` — blocks, txs, accounts, witnesses, chain params, tokens |
+| REST | **RPC port − 100** (e.g. `:8800`) | `/api/*` — P2P peers, local wallets, contract list |
 
-兼容性：
+Compatibility:
 
-- **节点 ≥ b27**：REST 已挂 CORS，网络/资产页的 REST 卡片才可用（否则自动降级提示，其余功能不受影响）
-- **节点 ≥ b26**：交易响应含顶层扁平字段（`type` / `type_name` / `from` / `to` / `amount`…），类型显示精确；旧节点按嵌套 `raw_data` 回退解析
-- 地址比较按 base58 解码载荷进行，兼容校验和非标准地址（同账户不同校验和视为相等）
+- **Node ≥ b27**: REST has CORS enabled — otherwise the network/assets REST cards degrade gracefully (everything else still works)
+- **Node ≥ b26**: transactions include flat top-level fields (`type`, `type_name`, `from`, `to`, `amount`…) for precise type labels; older nodes fall back to nested `raw_data` parsing
+- Address comparison is done on the decoded base58 payload, so non-standard-checksum addresses of the same account match correctly
 
-## 配套
+## Companion
 
-- [`payment-test.html`](payment-test.html) —— 收款测试页：二维码收款、到账监听（横幅+提示音+会话累计）、期望金额提醒、签名发送闭环测试
-- [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) —— 节点 API 完整文档（浏览器所用接口均在其中）
+- [`payment-test.html`](payment-test.html) — payment testing page: QR code receiving, incoming-payment listener (banner + sound + session total), expected-amount alerts, sign-and-send loop test
+- [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) — full node API reference (every endpoint used by these pages)
 
-## 免责
+## Disclaimer
 
-本仓库为链上数据的只读展示工具，不托管私钥、不发起交易（收款测试页的发送功能需用户自行填写私钥，仅在本地浏览器内使用）。
+This repository is a read-only on-chain data viewer. It does not custody private keys and does not initiate transactions (the send feature in the payment test page requires your own private key and runs entirely in your local browser).
