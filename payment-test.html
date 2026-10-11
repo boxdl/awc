@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWC 收款测试</title>
+<style>
+  :root{
+    --bg:#0d1117; --card:#161b22; --border:#30363d; --text:#e6edf3;
+    --muted:#8b949e; --accent:#2f81f7; --green:#3fb950; --red:#f85149;
+    --yellow:#d29922;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+         padding:14px 22px;border-bottom:1px solid var(--border);background:var(--card)}
+  header h1{margin:0;font-size:19px;font-weight:650}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--muted);display:inline-block}
+  .dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+  .dot.err{background:var(--red);box-shadow:0 0 6px var(--red)}
+  #nodeInfo{color:var(--muted);font-size:13px}
+  main{max-width:960px;margin:0 auto;padding:20px 16px 60px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+        padding:18px 20px;margin-bottom:18px}
+  .card h2{margin:0 0 14px;font-size:16px;font-weight:650}
+  label{display:block;color:var(--muted);font-size:13px;margin:10px 0 4px}
+  input,select,button{font:inherit;border-radius:8px;border:1px solid var(--border);
+        background:#0d1117;color:var(--text);padding:9px 12px;outline:none}
+  input:focus{border-color:var(--accent)}
+  input[readonly]{background:#10141a;color:var(--muted)}
+  button{cursor:pointer;background:#21262d;border-color:#3d444d}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  button.primary:disabled{opacity:.5;cursor:default}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .grow{flex:1;min-width:220px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .chip{font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);
+        background:#21262d;cursor:pointer;color:var(--muted)}
+  .chip:hover{border-color:var(--accent);color:var(--text)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:16px}
+  .stat{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+  .stat .k{color:var(--muted);font-size:12px}
+  .stat .v{font-size:20px;font-weight:650;margin-top:2px}
+  .stat .v small{font-size:12px;color:var(--muted);font-weight:400}
+  .v.pos{color:var(--green)} .v.neg{color:var(--red)}
+  .qrbox{text-align:center;padding:10px}
+  .qrbox img{background:#fff;padding:8px;border-radius:8px;width:220px;height:220px}
+  .qrbox .noqr{color:var(--muted);font-size:13px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{color:var(--muted);text-align:left;font-weight:500;padding:8px 10px;
+     border-bottom:1px solid var(--border)}
+  td{padding:8px 10px;border-bottom:1px solid #21262d;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+  .empty{color:var(--muted);text-align:center;padding:22px 0}
+  #banner{position:fixed;top:0;left:0;right:0;z-index:50;transform:translateY(-110%);
+          transition:transform .35s;background:#0f3d21;border-bottom:2px solid var(--green);
+          color:#aff5b4;text-align:center;padding:16px;font-size:18px;font-weight:700}
+  #banner.show{transform:translateY(0)}
+  #banner.warn{background:#3d2f0f;border-color:var(--yellow);color:#ffe6a3}
+  details{margin-top:6px}
+  summary{cursor:pointer;color:var(--accent);font-size:14px;user-select:none}
+  .warnbox{background:#3d2a0f;border:1px solid var(--yellow);border-radius:8px;
+           color:#ffe6a3;font-size:13px;padding:10px 12px;margin:12px 0}
+  .err{color:var(--red);font-size:13px;margin-top:8px;white-space:pre-wrap}
+  .okmsg{color:var(--green);font-size:13px;margin-top:8px;white-space:pre-wrap}
+  .muted{color:var(--muted);font-size:13px}
+  footer{max-width:960px;margin:0 auto;padding:0 16px 30px;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+
+<div id="banner"></div>
+
+<header>
+  <h1>AWC 收款测试</h1>
+  <span class="dot" id="connDot"></span>
+  <span id="nodeInfo">未连接</span>
+</header>
+
+<main>
+
+  <!-- 节点配置 -->
+  <section class="card">
+    <h2>节点连接</h2>
+    <div class="row">
+      <div class="grow">
+        <label>TRON RPC 地址</label>
+        <input id="rpc" class="mono" value="http://127.0.0.1:8900" spellcheck="false">
+      </div>
+      <div>
+        <label>轮询间隔（秒）</label>
+        <input id="interval" type="number" value="3" min="1" max="60" style="width:90px">
+      </div>
+      <div style="align-self:flex-end">
+        <button class="primary" id="btnApply">连接</button>
+      </div>
+    </div>
+    <div class="chips">
+      <span class="chip" data-rpc="http://127.0.0.1:8900">主节点 :8900</span>
+      <span class="chip" data-rpc="http://127.0.0.1:8300">sr1 :8300</span>
+      <span class="chip" data-rpc="http://mc.wanys.xyz:8900">mc 公网</span>
+    </div>
+  </section>
+
+  <!-- 收款 -->
+  <section class="card">
+    <h2>收款地址</h2>
+    <div class="row">
+      <div class="grow">
+        <input id="recvAddr" class="mono" spellcheck="false"
+               value="TArgPbSneb3BGCdb1zZYGaqLZ7HfpBhQkM">
+        <div class="chips">
+          <span class="chip" data-addr="TArgPbSneb3BGCdb1zZYGaqLZ7HfpBhQkM">Owner 主账户</span>
+          <span class="chip" data-addr="TFUov3SmNRkQqNpavfDFD7tC7AqCF8XKrk">矿工账户</span>
+          <span class="chip" data-addr="TAPesdT7CUXM7qUtEt1Cwxd9LkfTtVcUfN">TAPesdT…（已撤销）</span>
+          <span class="chip" data-addr="TC8B8ZA5qZVSpg6aFtm4nqihssw29K3BEX">授权合约</span>
+        </div>
+      </div>
+      <div class="row" style="align-self:flex-end;gap:8px">
+        <button id="btnCopy">复制地址</button>
+        <button id="btnRefresh">刷新</button>
+      </div>
+    </div>
+
+    <label style="margin-top:14px">期望到账金额（可选，填了达标会大字提醒）</label>
+    <div class="row">
+      <input id="expect" type="number" min="0" step="0.01" placeholder="例如 10" style="width:160px">
+      <span class="muted">AWC</span>
+      <label style="margin:0 0 0 16px"><input type="checkbox" id="beep" checked> 到账提示音</label>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="k">余额</div>
+        <div class="v" id="stBalance">—</div></div>
+      <div class="stat"><div class="k">会话净变化</div>
+        <div class="v" id="stDelta">—</div></div>
+      <div class="stat"><div class="k">带宽</div>
+        <div class="v" id="stBw">—</div></div>
+      <div class="stat"><div class="k">账户状态</div>
+        <div class="v" id="stActive" style="font-size:16px">—</div></div>
+      <div class="stat"><div class="k">节点高度 / 最新块</div>
+        <div class="v" id="stHeight" style="font-size:16px">—</div></div>
+    </div>
+    <div class="muted" id="stAddrNote" style="margin-top:8px"></div>
+  </section>
+
+  <!-- 二维码 -->
+  <section class="card">
+    <h2>收款码</h2>
+    <div class="qrbox">
+      <img id="qrImg" alt="收款二维码">
+      <div class="noqr" id="qrFail" style="display:none">二维码加载失败（需要联网），请直接复制上面的地址</div>
+      <div class="muted" style="margin-top:8px">扫码内容 = 收款地址，可用手机钱包扫码支付</div>
+    </div>
+  </section>
+
+  <!-- 记录 -->
+  <section class="card">
+    <h2>本会话收款记录 <span class="muted" id="inTotal" style="font-weight:400"></span></h2>
+    <table>
+      <thead><tr><th style="width:90px">时间</th><th style="width:110px">金额</th>
+        <th>来源</th><th style="width:130px">交易ID</th></tr></thead>
+      <tbody id="recvBody">
+        <tr><td colspan="4" class="empty">等待收款……（页面打开后新到账的交易会出现在这里）</td></tr>
+      </tbody>
+    </table>
+    <details>
+      <summary>链上最近活动（该地址最近 10 笔，含转出）</summary>
+      <table style="margin-top:10px">
+        <thead><tr><th style="width:90px">时间</th><th style="width:70px">类型</th>
+          <th style="width:110px">金额</th><th>对方</th><th style="width:130px">交易ID</th></tr></thead>
+        <tbody id="recentBody">
+          <tr><td colspan="5" class="empty">暂无</td></tr>
+        </tbody>
+      </table>
+    </details>
+  </section>
+
+  <!-- 发送测试 -->
+  <section class="card">
+    <details open>
+      <summary><b>发送测试（自转一笔，验证收款监听）</b></summary>
+      <div class="warnbox">
+        私钥仅在本页内存中使用、随请求发给你填写的节点 RPC，不会写入本地存储。
+        仅在你自己的测试链上使用；不要填主网/交易所私钥。
+      </div>
+      <label>发送地址</label>
+      <input id="sendFrom" class="mono" spellcheck="false"
+             value="TFUov3SmNRkQqNpavfDFD7tC7AqCF8XKrk">
+      <label>发送方私钥（hex）</label>
+      <input id="sendKey" type="password" class="mono" placeholder="64 字符 hex 私钥" spellcheck="false">
+      <label>收款地址</label>
+      <div class="row">
+        <input id="sendTo" class="mono grow" spellcheck="false">
+        <label style="margin:0"><input type="checkbox" id="selfPay" checked> 用上面的收款地址</label>
+      </div>
+      <label>金额（AWC）</label>
+      <div class="row">
+        <input id="sendAmt" type="number" min="0.01" step="0.01" value="1" style="width:160px">
+        <button class="primary" id="btnSend">签名并广播</button>
+      </div>
+      <div class="muted" id="sendHint" style="margin-top:8px">
+        1 AWC = 100 内部单位；首次给新地址转账会额外收 1 AWC 激活费（由节点自动计）。
+      </div>
+      <div class="err" id="sendErr"></div>
+      <div class="okmsg" id="sendOk"></div>
+    </details>
+  </section>
+
+</main>
+
+<footer>
+  单位换算：1 AWC = 100 内部单位，接口返回的 balance 为内部单位。新地址由首笔转账自动激活。
+  配套接口文档见仓库 <b>API_DOCUMENTATION.md</b>。
+  出块间隔约 10 秒，广播后等 1~2 个块才计入交易列表属正常现象。
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const UNITS = 100;                 // 1 AWC = 100 内部单位
+  const ME_TYPES = new Set([0]);      // type=0 transfer 计入收款
+
+  let recv = localStorage.getItem('awc_recv') || 'TArgPbSneb3BGCdb1zZYGaqLZ7HfpBhQkM';
+  let rpc  = localStorage.getItem('awc_rpc')  || 'http://127.0.0.1:8900';
+  let timer = null;
+  let seenTx = new Set();             // 已见过的交易
+  let baseBalance = null;             // 打开页面时的余额
+  let inSum = 0;                      // 本会话收到的内部单位
+  let started = false;
+  let busy = false;
+
+  $('recvAddr').value = recv;
+  $('rpc').value = rpc;
+  $('sendTo').value = recv;
+
+  const awc = u => (u / UNITS).toLocaleString('zh-CN', {maximumFractionDigits: 2});
+  const short = s => !s ? '' : (s.length > 16 ? s.slice(0,8) + '…' + s.slice(-6) : s);
+  const hhmmss = ms => new Date(ms).toLocaleTimeString('zh-CN', {hour12:false});
+
+  // 地址比较：链上交易里的地址是 HexToAddress 生成的（校验和不含 0x41 版本字节），
+  // 和标准钱包地址字符串可能不同（如 ...BhQkM vs ...oZh3Mp），但载荷一致。
+  // 因此按 base58 解码后去掉 4 字节校验和的载荷比较，而不是字符串直接比。
+  const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  function b58payload(s){
+    if (!s) return null;
+    let n = 0n;
+    for (const c of s){
+      const i = B58.indexOf(c);
+      if (i < 0) return null;
+      n = n * 58n + BigInt(i);
+    }
+    let hex = n === 0n ? '' : n.toString(16);
+    if (hex.length % 2) hex = '0' + hex;
+    const body = hex ? Uint8Array.from(hex.match(/../g).map(b => parseInt(b, 16))) : new Uint8Array(0);
+    let zeros = 0;
+    while (zeros < s.length && s[zeros] === '1') zeros++;
+    const out = new Uint8Array(zeros + body.length);
+    out.set(body, zeros);
+    return out.length >= 5 ? out.slice(0, out.length - 4) : out; // 去校验和只留载荷
+  }
+  function sameAddr(a, b){
+    if (a === b) return true;
+    const x = b58payload(a), y = b58payload(b);
+    if (!x || !y || x.length !== y.length) return false;
+    for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return false;
+    return true;
+  }
+
+  async function api(path, body){
+    const res = await fetch(rpc.replace(/\/+$/,'') + path, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body || {})
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  function setConn(ok, text){
+    $('connDot').className = 'dot ' + (ok ? 'ok' : 'err');
+    $('nodeInfo').textContent = text;
+  }
+
+  function banner(msg, warn){
+    const b = $('banner');
+    b.textContent = msg;
+    b.className = 'show' + (warn ? ' warn' : '');
+    clearTimeout(b._t);
+    b._t = setTimeout(() => b.className = '', warn ? 8000 : 6000);
+  }
+
+  function beep(){
+    if (!$('beep').checked) return;
+    try{
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [880, 1320].forEach((f, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.frequency.value = f; o.type = 'sine';
+        g.gain.setValueAtTime(0.0001, ctx.currentTime + i*0.18);
+        g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + i*0.18 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i*0.18 + 0.16);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(ctx.currentTime + i*0.18); o.stop(ctx.currentTime + i*0.18 + 0.18);
+      });
+      setTimeout(() => ctx.close(), 800);
+    }catch(e){}
+  }
+
+  function updateQR(){
+    const addr = $('recvAddr').value.trim();
+    $('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=' +
+                     encodeURIComponent(addr);
+  }
+  $('qrImg').onerror = () => { $('qrImg').style.display='none'; $('qrFail').style.display='block'; };
+  $('qrImg').onload  = () => { $('qrImg').style.display='';   $('qrFail').style.display='none';  };
+
+  function renderAccount(acc){
+    $('stBalance').innerHTML = awc(acc.balance) + ' <small>AWC</small>';
+    $('stBw').innerHTML = (acc.net_usage != null ? acc.net_usage : '—') +
+      ' / ' + (acc.net_limit != null ? acc.net_limit : '?') + ' <small>用量/上限</small>';
+    const act = acc.activated !== false && (acc.balance > 0 || acc.activated === true);
+    $('stActive').innerHTML = act
+      ? '<span style="color:var(--green)">已激活</span>'
+      : '<span style="color:var(--yellow)">未激活（首笔收款自动激活）</span>';
+    if (baseBalance === null){
+      baseBalance = acc.balance;
+      $('stDelta').innerHTML = '0 <small>AWC</small>';
+    }else{
+      const d = acc.balance - baseBalance;
+      $('stDelta').className = 'v ' + (d > 0 ? 'pos' : d < 0 ? 'neg' : '');
+      $('stDelta').innerHTML = (d>=0?'+':'') + awc(d) + ' <small>AWC</small>';
+    }
+  }
+
+  function addRecvRow(tx){
+    const tb = $('recvBody');
+    if (tb.firstElementChild && tb.firstElementChild.classList.contains('empty')) tb.innerHTML = '';
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + hhmmss(tx.timestamp) + '</td>' +
+      '<td style="color:var(--green);font-weight:650">+' + awc(tx.amount) + '</td>' +
+      '<td class="mono">' + short(tx.from) + '</td>' +
+      '<td class="mono" title="' + tx.txID + '">' + short(tx.txID) + '</td>';
+    tb.insertBefore(tr, tb.firstChild);
+    while (tb.children.length > 30) tb.removeChild(tb.lastChild);
+  }
+
+  function renderRecent(list){
+    const tb = $('recentBody');
+    if (!list.length){ tb.innerHTML = '<tr><td colspan="5" class="empty">暂无</td></tr>'; return; }
+    tb.innerHTML = list.slice(0, 10).map(tx => {
+      const incoming = sameAddr(tx.to, recv);
+      const dir = incoming ? '→ 收' : '← 付';
+      const other = incoming ? tx.from : tx.to;
+      const color = incoming ? 'var(--green)' : 'var(--red)';
+      return '<tr>' +
+        '<td>' + hhmmss(tx.timestamp) + '</td>' +
+        '<td style="color:' + color + '">' + dir + '</td>' +
+        '<td>' + awc(tx.amount) + '</td>' +
+        '<td class="mono">' + short(other) + '</td>' +
+        '<td class="mono" title="' + tx.txID + '">' + short(tx.txID) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  async function tick(){
+    if (busy) return;
+    busy = true;
+    try{
+      const [now, acc, txResp] = await Promise.all([
+        api('/wallet/getnowblock'),
+        api('/wallet/getaccount', {address: $('recvAddr').value.trim()}),
+        api('/wallet/gettransactionsbyaddress', {address: $('recvAddr').value.trim(), limit: 50})
+      ]);
+
+      const h = now.block_header.raw_data.number;
+      const age = Math.max(0, Math.round(Date.now() / 1000 - now.block_header.raw_data.timestamp / 1000));
+      $('stHeight').innerHTML = h + ' <small>· ' + age + 's 前出块' + (age > 30 ? ' ⚠️' : '') + '</small>';
+      setConn(true, rpc + '  ·  高度 ' + h);
+
+      renderAccount(acc);
+
+      const list = (txResp && txResp.data) || [];
+      renderRecent(list);
+
+      if (started){
+        for (const tx of list){
+          if (seenTx.has(tx.txID)) continue;
+          seenTx.add(tx.txID);
+          const incoming = sameAddr(tx.to, recv) && ME_TYPES.has(tx.type);
+          if (incoming){
+            inSum += tx.amount;
+            addRecvRow(tx);
+            $('inTotal').textContent = '（累计 +' + awc(inSum) + ' AWC）';
+            const expect = parseFloat($('expect').value);
+            if (!isNaN(expect) && expect > 0 && inSum >= expect * UNITS){
+              banner('🎉 已达期望金额：累计收到 ' + awc(inSum) + ' AWC！');
+            }else{
+              banner('💰 收到 ' + awc(tx.amount) + ' AWC  来自 ' + short(tx.from));
+            }
+            beep();
+          }
+        }
+      }else{
+        // 首轮：建立基线，页面打开前的交易不算
+        list.forEach(tx => seenTx.add(tx.txID));
+        started = true;
+      }
+    }catch(e){
+      setConn(false, rpc + '  ·  ' + e.message);
+    }finally{
+      busy = false;
+    }
+  }
+
+  function restart(){
+    clearInterval(timer);
+    const sec = Math.max(1, parseInt($('interval').value, 10) || 3);
+    timer = setInterval(tick, sec * 1000);
+    tick();
+  }
+
+  $('btnApply').onclick = () => {
+    rpc = $('rpc').value.trim();
+    localStorage.setItem('awc_rpc', rpc);
+    started = false; baseBalance = null;
+    restart();
+  };
+
+  $('btnRefresh').onclick = tick;
+
+  $('btnCopy').onclick = async () => {
+    const v = $('recvAddr').value.trim();
+    try{ await navigator.clipboard.writeText(v); }
+    catch(e){
+      const t = document.createElement('textarea');
+      t.value = v; document.body.appendChild(t); t.select();
+      document.execCommand('copy'); t.remove();
+    }
+    banner('已复制收款地址', false);
+    setTimeout(() => $('banner').className = '', 1500);
+  };
+
+  $('recvAddr').addEventListener('change', () => {
+    recv = $('recvAddr').value.trim();
+    localStorage.setItem('awc_recv', recv);
+    $('sendTo').value = recv;
+    started = false; baseBalance = null; seenTx = new Set();
+    updateQR();
+    tick();
+  });
+
+  document.querySelectorAll('.chip[data-rpc]').forEach(el => el.onclick = () => {
+    $('rpc').value = el.dataset.rpc;
+    $('btnApply').click();
+  });
+  document.querySelectorAll('.chip[data-addr]').forEach(el => el.onclick = () => {
+    $('recvAddr').value = el.dataset.addr;
+    $('recvAddr').dispatchEvent(new Event('change'));
+  });
+
+  $('selfPay').addEventListener('change', () => {
+    const on = $('selfPay').checked;
+    $('sendTo').value = on ? $('recvAddr').value.trim() : '';
+    $('sendTo').readOnly = on;
+  });
+  $('sendTo').readOnly = true;
+
+  $('btnSend').onclick = async () => {
+    $('sendErr').textContent = '';
+    $('sendOk').textContent = '';
+    const from = $('sendFrom').value.trim();
+    const key  = $('sendKey').value.trim();
+    const to   = ($('selfPay').checked ? $('recvAddr').value.trim() : $('sendTo').value.trim());
+    const amt  = Math.round(parseFloat($('sendAmt').value) * UNITS);
+    if (!from || !to){ $('sendErr').textContent = '地址不能为空'; return; }
+    if (!/^[0-9a-fA-F]{64}$/.test(key)){ $('sendErr').textContent = '私钥需要 64 位 hex'; return; }
+    if (!amt || amt <= 0){ $('sendErr').textContent = '金额必须大于 0'; return; }
+
+    $('btnSend').disabled = true;
+    $('sendHint').textContent = '广播中……等 1~2 个块确认';
+    try{
+      const resp = await api('/wallet/createtransaction', {
+        owner_address: from,
+        to_address: to,
+        amount: amt,
+        private_key: key
+      });
+      if (resp && resp.Error){
+        $('sendErr').textContent = resp.Error +
+          (resp.required != null ? '\n需要 ' + awc(resp.required) + ' AWC（含激活/手续费）' : '');
+      }else{
+        const txid = resp.txID || resp.txid || JSON.stringify(resp).slice(0, 80);
+        $('sendOk').textContent = '✓ 已广播  金额 ' + awc(amt) + ' AWC  txID: ' + txid;
+        banner('已广播 ' + awc(amt) + ' AWC，等待出块确认……', true);
+        tick();
+      }
+    }catch(e){
+      $('sendErr').textContent = '请求失败：' + e.message;
+    }finally{
+      $('btnSend').disabled = false;
+      setTimeout(() => { $('sendHint').textContent =
+        '1 AWC = 100 内部单位；首次给新地址转账会额外收 1 AWC 激活费（由节点自动计）。'; }, 4000);
+    }
+  };
+
+  updateQR();
+  restart();
+})();
+</script>
+</body>
+</html>

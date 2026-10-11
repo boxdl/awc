@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWC 区块浏览器</title>
+<style>
+:root{
+  --bg:#0a0e14; --panel:#111722; --panel2:#161e2c; --line:#232e42;
+  --fg:#e6edf7; --dim:#8b98ad; --cyan:#4fd1c5; --blue:#63b3ff;
+  --green:#3ddc97; --red:#ff6b6b; --amber:#ffc857; --purple:#b794f4;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",Arial,sans-serif;min-height:100vh;font-size:14px}
+a{color:var(--cyan);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1140px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.logo{display:flex;align-items:center;gap:10px;cursor:pointer}
+.logo .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#4fd1c5,#63b3ff);display:flex;align-items:center;justify-content:center;font-weight:800;color:#04121a;font-size:16px}
+.logo h1{font-size:19px;letter-spacing:.5px}
+.logo .sub{font-size:11px;color:var(--dim);margin-top:2px}
+.nav{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px}
+.nav a{color:var(--dim);font-size:13px;padding:6px 16px;border-radius:999px;font-weight:600}
+.nav a:hover{color:var(--fg);text-decoration:none}
+.nav a.on{background:var(--cyan);color:#04121a}
+.rpcbar{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:6px 8px}
+.rpcbar input{background:#0a0f18;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:5px 8px;width:190px;font-size:12px;outline:none}
+.rpcbar input:focus{border-color:var(--cyan)}
+.chip{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:3px 9px;cursor:pointer;background:none}
+.chip:hover{color:var(--cyan);border-color:var(--cyan)}
+.statusbar{display:flex;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px}
+.statusbar .kv b{color:var(--fg);font-weight:600}
+.statusbar .kv{color:var(--dim)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px}
+.dot.err{background:var(--red)}
+.refresh{margin-left:auto;color:var(--dim);cursor:pointer;border:1px solid var(--line);border-radius:7px;padding:2px 9px;font-size:12px;background:none}
+.refresh:hover{color:var(--cyan);border-color:var(--cyan)}
+.searchbar{display:flex;gap:8px;margin-bottom:16px}
+.searchbar input{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:12px 15px;font-size:14px;outline:none}
+.searchbar input:focus{border-color:var(--cyan)}
+.searchbar button{background:var(--cyan);color:#04121a;font-weight:700;border:0;border-radius:10px;padding:0 22px;font-size:14px;cursor:pointer}
+.searchbar button:hover{filter:brightness(1.1)}
+#banner{display:none;background:#3b1d24;border:1px solid #7a3040;color:#ffb4c0;border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px}
+.card h2{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card h2 .back,.card h2 .side{font-size:13px;font-weight:400}
+.card h2 .side{margin-left:auto;color:var(--dim)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.stat .v{font-size:20px;font-weight:700;margin-top:4px}
+.stat .l{font-size:11px;color:var(--dim);letter-spacing:.5px}
+.stat .v small{font-size:12px;color:var(--dim);font-weight:400}
+.stat .mini{margin-top:6px;font-size:12px;color:var(--dim);line-height:1.7}
+.stat .mini a{font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{color:var(--dim);font-weight:500;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:12px;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #1a2333;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#141c2a}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.badge.g{color:var(--green);border-color:#1d5c44;background:#0f2a20}
+.badge.a{color:var(--amber);border-color:#6b5424;background:#2a2210}
+.badge.b{color:var(--blue);border-color:#26486b;background:#101f30}
+.badge.p{color:var(--purple);border-color:#4a3a72;background:#1c1730}
+.badge.r{color:var(--red);border-color:#6b2630;background:#2a1216}
+.amt-in{color:var(--green);font-weight:600}
+.amt-out{color:var(--red);font-weight:600}
+.dim{color:var(--dim)}
+.empty{color:var(--dim);text-align:center;padding:26px 0;font-size:13px}
+.kvlist{display:grid;grid-template-columns:130px 1fr;gap:8px 14px;font-size:13px;align-items:baseline}
+.kvlist .k{color:var(--dim)}
+.kvlist .v{word-break:break-all}
+.copy{cursor:pointer;color:var(--dim);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:2px 7px;background:none;margin-left:6px;vertical-align:middle}
+.copy:hover{color:var(--cyan);border-color:var(--cyan)}
+.hint{font-size:12px;color:var(--dim);margin-top:10px;line-height:1.7}
+.bar{display:inline-block;height:8px;border-radius:4px;background:linear-gradient(90deg,#4fd1c5,#63b3ff);vertical-align:middle;min-width:2px}
+.barbg{display:inline-block;width:120px;height:8px;border-radius:4px;background:#0c1320;vertical-align:middle;margin-left:8px;overflow:hidden}
+.spark{display:flex;gap:2px;align-items:flex-end;height:26px;margin-top:6px}
+.spark i{display:block;width:5px;min-height:2px;border-radius:2px;background:linear-gradient(180deg,#63b3ff,#4fd1c5)}
+.pager{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:12px}
+.pager a,.pager span{font-size:13px;border:1px solid var(--line);border-radius:8px;padding:6px 14px;color:var(--dim)}
+.pager a:hover{color:var(--cyan);border-color:var(--cyan);text-decoration:none}
+.pager .cur{color:var(--fg);border-color:var(--cyan)}
+.pager .off{opacity:.35;pointer-events:none}
+.types{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--dim);font-size:12px}
+pre{background:#0a0f18;border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:8px;font-size:11px;overflow:auto;max-height:340px;white-space:pre-wrap;word-break:break-all}
+footer{text-align:center;color:#4a566b;font-size:12px;margin-top:30px}
+@media (max-width:760px){
+  .kvlist{grid-template-columns:1fr}
+  .rpcbar input{width:130px}
+  th.hide-m,td.hide-m{display:none}
+  .nav{order:3}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo" onclick="location.hash='#/'">
+    <div class="mark">A</div>
+    <div><h1>AWC 区块浏览器</h1><div class="sub">TRON 兼容 DPoS · 主网</div></div>
+  </div>
+  <nav class="nav" id="nav">
+    <a href="#/" data-v="home">首页</a>
+    <a href="#/witness" data-v="witness">见证人</a>
+    <a href="#/network" data-v="network">网络</a>
+    <a href="#/assets" data-v="assets">资产</a>
+  </nav>
+  <div class="rpcbar">
+    <span class="dim" style="font-size:12px">节点</span>
+    <input id="rpcInput" spellcheck="false">
+    <button class="chip" onclick="setRpc('http://mc.wanys.xyz:8900')">公网</button>
+    <button class="chip" onclick="setRpc('http://127.0.0.1:8900')">本地主</button>
+    <button class="chip" onclick="setRpc('http://127.0.0.1:8300')">本地sr1</button>
+  </div>
+</header>
+
+<div class="statusbar" id="statusbar">
+  <span class="kv"><span class="dot" id="connDot"></span><b id="stConn">连接中…</b></span>
+  <span class="kv">高度 <b id="stH">—</b></span>
+  <span class="kv">最新块 <b id="stAge">—</b></span>
+  <span class="kv">出块者 <b id="stW">—</b></span>
+  <span class="kv">近40块交易 <b id="stTx">—</b></span>
+  <button class="refresh" onclick="route()" title="刷新当前页">⟳ 刷新</button>
+</div>
+
+<div class="searchbar">
+  <input id="q" placeholder="搜索：区块高度 / 区块Hash / 交易Hash / 地址 (T...)" spellcheck="false"
+         onkeydown="if(event.key==='Enter')doSearch()">
+  <button onclick="doSearch()">搜索</button>
+</div>
+
+<div id="banner"></div>
+<main id="app"><div class="empty">加载中…</div></main>
+
+<footer>AWC Explorer · 1 AWC = 100 内部单位 · TronRPC /wallet/* · REST /api/*（RPC端口−100） · <a href="payment-test.html">收款测试页</a></footer>
+</div>
+
+<script>
+'use strict';
+const UNITS = 100;
+/* 默认连公网节点；键名带版本，旧版存的 localhost 默认值不会盖掉新默认 */
+let RPC = localStorage.getItem('awc_exp_rpc_v2') || 'http://mc.wanys.xyz:8900';
+const app = document.getElementById('app');
+const state = { height: 0, blocks: [], timer: null, init: false };
+
+const TYPE_ZH = {
+  transfer:'转账', freeze:'冻结', unfreeze:'解冻', vote:'投票',
+  register_witness:'注册SR', deploy_contract:'部署合约', trigger_contract:'调用合约',
+  delegate:'委托', undelegate:'收回委托', create_token:'创建代币', transfer_token:'代币转账'
+};
+const P_ZH = {
+  getMaintenanceTimeInterval:'维护（换届）间隔', getAccountUpgradeCost:'账户升级费用',
+  getCreateAccountFee:'创建账户费用', getTransactionFee:'交易基础费用',
+  getAssetIssueFee:'发行资产费用', getWitnessPayPerBlock:'出块奖励',
+  getWitnessStandbyAllowance:'备用 SR 补贴', getCreateNewAccountFeeInSystemContract:'系统建户费用',
+  getRemoveBlacklistFee:'解除黑名单费用'
+};
+const CONTRACT_ZH = {
+  TransferContract:'转账', FreezeBalanceContract:'冻结', UnfreezeBalanceContract:'解冻',
+  VoteWitnessContract:'投票', TriggerSmartContract:'调用合约', DeployContractContract:'部署合约'
+};
+
+/* ---------- 基础工具 ---------- */
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const awc = u => (Number(u || 0) / UNITS).toLocaleString('zh-CN', {maximumFractionDigits:2});
+const short = (s, n=10) => !s ? '' : (s.length > (n*2+3) ? s.slice(0,n)+'…'+s.slice(-n) : s);
+const num = n => Number(n||0).toLocaleString('zh-CN');
+function ago(ms){
+  const d = Math.max(0, Date.now() - ms);
+  if (d < 60e3) return Math.floor(d/1e3) + ' 秒前';
+  if (d < 3600e3) return Math.floor(d/60e3) + ' 分前';
+  if (d < 86400e3) return Math.floor(d/3600e3) + ' 时前';
+  return Math.floor(d/86400e3) + ' 天前';
+}
+const dt = ms => ms ? new Date(ms).toLocaleString('zh-CN', {hour12:false}) : '—';
+function copy(text){
+  const t = document.createElement('textarea');
+  t.value = text; document.body.appendChild(t); t.select();
+  try { document.execCommand('copy'); flash('已复制'); } catch(e){ flash('复制失败'); }
+  t.remove();
+}
+let flashT;
+function flash(msg){
+  let el = document.getElementById('flash');
+  if (!el){ el = document.createElement('div'); el.id = 'flash';
+    el.style.cssText = 'position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#1d5c44;color:#c9ffe9;padding:8px 18px;border-radius:8px;z-index:99;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.5)';
+    document.body.appendChild(el); }
+  el.textContent = msg; el.style.display = 'block';
+  clearTimeout(flashT); flashT = setTimeout(()=>el.style.display='none', 1400);
+}
+
+/* 地址比较：链上返回的地址校验和可能非标准（HexToAddress 不含 0x41 版本字节），
+   字符串不等但载荷相同 → 按 base58 解码载荷比较 */
+const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+function b58payload(s){
+  if (!s) return null;
+  let n = 0n;
+  for (const c of s){
+    const i = B58.indexOf(c);
+    if (i < 0) return null;
+    n = n * 58n + BigInt(i);
+  }
+  let hex = n === 0n ? '' : n.toString(16);
+  if (hex.length % 2) hex = '0' + hex;
+  const body = hex ? Uint8Array.from(hex.match(/../g).map(b=>parseInt(b,16))) : new Uint8Array(0);
+  let zeros = 0;
+  while (zeros < s.length && s[zeros] === '1') zeros++;
+  const out = new Uint8Array(zeros + body.length);
+  out.set(body, zeros);
+  return out.length >= 5 ? out.slice(0, out.length - 4) : out;
+}
+function sameAddr(a, b){
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const x = b58payload(a), y = b58payload(b);
+  if (!x || !y || x.length !== y.length) return false;
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return false;
+  return true;
+}
+function normTs(x){
+  x = Number(x || 0);
+  if (!x) return 0;
+  return x > 1e12 ? x : x * 1000;
+}
+
+/* ---------- RPC / REST ---------- */
+async function api(path, body){
+  const r = await fetch(RPC + path, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body || {})
+  });
+  if (!r.ok){
+    let msg = 'HTTP ' + r.status;
+    try { const j = await r.json(); if (j.Error) msg = j.Error; } catch(e){}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+function restBase(){
+  try {
+    const u = new URL(RPC);
+    if (!u.port) return null;
+    const p = parseInt(u.port, 10) - 100;
+    if (!(p > 0)) return null;
+    return u.protocol + '//' + u.hostname + ':' + p;
+  } catch(e){ return null; }
+}
+async function restApi(path){
+  const base = restBase();
+  if (!base) throw new Error('无法从 RPC 地址推导 REST 端口');
+  const r = await fetch(base + path);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+function setRpc(u){
+  RPC = u.replace(/\/+$/, '');
+  localStorage.setItem('awc_exp_rpc_v2', RPC);
+  document.getElementById('rpcInput').value = RPC;
+  state.height = 0; state.blocks = []; state.init = false;
+  banner('');
+  route();
+}
+function banner(msg){
+  const el = document.getElementById('banner');
+  el.style.display = msg ? 'block' : 'none';
+  el.textContent = msg || '';
+}
+function conn(ok, msg){
+  const dot = document.getElementById('connDot');
+  dot.className = 'dot' + (ok ? '' : ' err');
+  document.getElementById('stConn').textContent = msg || (ok ? '已连接' : '连接失败');
+}
+function navSet(view){
+  document.querySelectorAll('#nav a').forEach(a =>
+    a.className = (a.dataset.v === view || (view === 'blocks' && a.dataset.v === 'home')) ? 'on' : '');
+}
+function statusDraw(){
+  const h = state.blocks[0];
+  document.getElementById('stH').textContent = state.height ? '#' + num(state.height) : '—';
+  if (h){
+    const ts = normTs(h.block_header.raw_data.timestamp);
+    document.getElementById('stAge').textContent = ago(ts) + ' (' + dt(ts) + ')';
+    document.getElementById('stW').textContent = short(h.block_header.raw_data.witness_address, 8);
+    document.getElementById('stTx').textContent = state.blocks.reduce((s,b)=>s+(b.transactions||[]).length, 0);
+  } else {
+    document.getElementById('stAge').textContent = '—';
+    document.getElementById('stW').textContent = '—';
+    document.getElementById('stTx').textContent = '—';
+  }
+}
+
+/* ---------- 交易解析（优先扁平字段，兼容旧节点嵌套格式） ---------- */
+function txInfo(tx){
+  const info = {
+    typeName: '', type: null, from: '', to: '', amount: 0, fee: 0,
+    nonce: null, ts: 0, contract: '', votes: 0, txID: tx.txID || ''
+  };
+  if (tx.type !== undefined && tx.type !== null && tx.type_name){
+    info.type = tx.type;
+    info.typeName = tx.type_name;
+    info.from = tx.from || '';
+    info.to = tx.to || '';
+    info.amount = Number(tx.amount || 0);
+    info.fee = Number(tx.fee || 0);
+    info.nonce = tx.nonce;
+    info.ts = normTs(tx.timestamp);
+  }
+  const c = (((tx.raw_data || {}).contract) || [])[0];
+  if (c){
+    info.contract = c.type || '';
+    const v = (c.parameter || {}).value || {};
+    if (!info.from) info.from = v.owner_address || '';
+    if (!info.to) info.to = v.to_address || v.contract_address || '';
+    if (!info.amount && v.amount) info.amount = Number(v.amount);
+    if (!info.fee && tx.raw_data.fee_limit) info.fee = Number(tx.raw_data.fee_limit);
+    if (!info.ts) info.ts = normTs(tx.raw_data.timestamp);
+    if (Array.isArray(v.votes)) info.votes = v.votes.reduce((s,x)=>s+Number(x.vote_count||0), 0);
+  }
+  if (!info.typeName && info.contract) info.typeName = info.contract;
+  return info;
+}
+function typeLabel(info){
+  if (info.typeName && TYPE_ZH[info.typeName]) return TYPE_ZH[info.typeName];
+  if (info.contract) return CONTRACT_ZH[info.contract] || info.contract;
+  if (info.typeName) return info.typeName;
+  return '交易';
+}
+function typeBadge(info){
+  const t = info.type;
+  let cls = 'badge';
+  if (t === 0) cls += ' b';
+  else if (t === 1 || t === 7) cls += ' p';
+  else if (t === 2 || t === 8) cls += ' a';
+  else if (t === 3 || t === 6) cls += ' g';
+  return '<span class="' + cls + '">' + esc(typeLabel(info)) + '</span>';
+}
+function amountCell(info){
+  if (info.type === 3 || info.votes) return '<span class="dim">' + num(info.votes) + ' 票</span>';
+  if (!info.amount) return '<span class="dim">—</span>';
+  if (info.type === 1) return '<span class="amt-out">' + awc(info.amount) + ' <small class="dim">冻结</small></span>';
+  return '<b>' + awc(info.amount) + '</b>';
+}
+const addrLink = a => a ? '<a class="mono" href="#/addr/' + esc(a) + '" title="' + esc(a) + '">' + esc(short(a, 8)) + '</a>' : '<span class="dim">—</span>';
+const txLink = h => h ? '<a class="mono" href="#/tx/' + esc(h) + '" title="' + esc(h) + '">' + esc(short(h, 8)) + '</a>' : '';
+
+/* ---------- 区块辅助 ---------- */
+const bnum = b => b.block_header.raw_data.number;
+const bts = b => normTs(b.block_header.raw_data.timestamp);
+const bwit = b => b.block_header.raw_data.witness_address;
+function intervalText(blocks, i){
+  if (i + 1 >= blocks.length) return '—';
+  const d = bts(blocks[i]) - bts(blocks[i + 1]);
+  return d > 0 ? (d / 1000).toFixed(1) + 's' : '—';
+}
+function blockRowsHtml(blocks){
+  let rows = '';
+  if (!blocks.length) return '<tr><td colspan="6" class="empty">无数据</td></tr>';
+  blocks.forEach((b, i) => {
+    const ts = bts(b);
+    rows += '<tr>' +
+      '<td><a href="#/block/' + bnum(b) + '">#' + num(bnum(b)) + '</a></td>' +
+      '<td class="ago" data-ts="' + ts + '">' + ago(ts) + '</td>' +
+      '<td class="num dim">' + intervalText(blocks, i) + '</td>' +
+      '<td>' + addrLink(bwit(b)) + '</td>' +
+      '<td class="num">' + (b.transactions || []).length + '</td>' +
+      '<td class="mono"><a href="#/block/' + esc(b.blockID) + '" title="' + esc(b.blockID) + '">' + esc(short(b.blockID, 8)) + '</a></td>' +
+      '</tr>';
+  });
+  return rows;
+}
+const BLOCK_TH = '<thead><tr><th>高度</th><th>时间</th><th class="num">间隔</th><th>出块者</th><th class="num">交易</th><th>区块Hash</th></tr></thead>';
+function typeChips(txEntries){
+  const m = {};
+  for (const {tx} of txEntries){
+    const i = txInfo(tx);
+    const l = typeLabel(i);
+    m[l] = (m[l] || 0) + 1;
+  }
+  return Object.entries(m).map(([k,v]) =>
+    '<span class="badge b">' + esc(k) + ' ×' + v + '</span>').join('');
+}
+function collectTxs(blocks, cap){
+  const out = [];
+  for (const b of blocks){
+    for (const tx of (b.transactions || [])) out.push({bn: bnum(b), tx});
+    if (cap && out.length >= cap) break;
+  }
+  return cap ? out.slice(0, cap) : out;
+}
+async function fetchBlocksRange(from, to){
+  const nums = [];
+  for (let n = from; n <= to; n++) nums.push(n);
+  const got = await Promise.all(nums.map(n => api('/wallet/getblockbynum', {num: n})));
+  return got.filter(Boolean);
+}
+
+/* ---------- 路由 ---------- */
+function go(p){ location.hash = '#/' + p; }
+function parseHash(){
+  const h = location.hash.replace(/^#\/?/, '');
+  const i = h.indexOf('/');
+  if (i < 0) return [h ? h : 'home', ''];
+  return [h.slice(0, i), h.slice(i + 1)];
+}
+window.addEventListener('hashchange', route);
+function stopPoll(){ if (state.timer){ clearInterval(state.timer); state.timer = null; } }
+
+async function route(){
+  stopPoll();
+  const [view, arg] = parseHash();
+  banner('');
+  navSet(view === '' ? 'home' : view);
+  try {
+    if (view === 'home' || view === '') await viewHome();
+    else if (view === 'blocks') await viewBlocks(arg);
+    else if (view === 'block') await viewBlock(arg);
+    else if (view === 'tx') await viewTx(arg);
+    else if (view === 'addr') await viewAddr(arg);
+    else if (view === 'witness') await viewWitness();
+    else if (view === 'network') await viewNetwork();
+    else if (view === 'assets') await viewAssets();
+    else { app.innerHTML = '<div class="card"><div class="empty">页面不存在 <a href="#/">返回首页</a></div></div>'; }
+  } catch (e){
+    conn(false, '连接失败');
+    app.innerHTML = '<div class="card"><div class="empty">加载失败：' + esc(e.message) +
+      '<br><br><button class="chip" onclick="route()">重试</button> · <a href="#/">返回首页</a></div></div>';
+    if (/Failed to fetch|NetworkError|Load failed|无法连接/i.test(e.message)) banner('无法连接节点 ' + RPC + '（检查节点是否运行 / 端口是否开放）');
+  }
+}
+
+/* ---------- 首页 ---------- */
+async function syncBlocks(initial){
+  const now = await api('/wallet/getnowblock');
+  const h = now.block_header.raw_data.number;
+  if (initial || !state.init){
+    const from = Math.max(0, h - 39);
+    state.blocks = (await fetchBlocksRange(from, h)).reverse();
+    state.height = h;
+    state.init = true;
+    return true;
+  }
+  if (h < state.height){
+    state.init = false;
+    return syncBlocks(true);
+  }
+  if (h > state.height){
+    const to = Math.min(h, state.height + 50);
+    const got = await fetchBlocksRange(state.height + 1, to);
+    state.blocks = got.reverse().concat(state.blocks).slice(0, 50);
+    state.height = h;
+    return true;
+  }
+  return false;
+}
+function homeStats(){
+  const blocks = state.blocks;
+  const head = blocks[0];
+  if (!head) return '';
+  const diffs = [];
+  for (let i = 0; i + 1 < blocks.length; i++){
+    const d = bts(blocks[i]) - bts(blocks[i + 1]);
+    if (d > 0) diffs.push(d);
+  }
+  const avg = diffs.length ? (diffs.reduce((a,b)=>a+b,0) / diffs.length / 1000) : 0;
+  const addrs = new Set();
+  let txN = 0;
+  for (const b of blocks){
+    for (const tx of (b.transactions || [])){
+      txN++;
+      const i = txInfo(tx);
+      if (i.from) addrs.add(i.from);
+      if (i.to) addrs.add(i.to);
+    }
+  }
+  const wit = {};
+  for (const b of blocks){ const w = bwit(b); wit[w] = (wit[w]||0) + 1; }
+  const witMini = Object.entries(wit).sort((a,b)=>b[1]-a[1]).map(([w,c]) =>
+    '<div>' + addrLink(w) + ' <span class="dim">×' + c + '</span></div>').join('');
+  const counts = blocks.map(b => (b.transactions || []).length).reverse();
+  const maxC = Math.max(1, ...counts);
+  const spark = '<div class="spark">' + counts.map(c =>
+    '<i style="height:' + Math.max(2, Math.round(c / maxC * 24)) + 'px" title="' + c + ' 笔"></i>').join('') + '</div>';
+  const stat = (l, v, mini) => '<div class="stat"><div class="l">' + l + '</div><div class="v">' + v + '</div>' +
+    (mini ? '<div class="mini">' + mini + '</div>' : '') + '</div>';
+  const ts = bts(head);
+  return '<div class="stats">' +
+    stat('最新高度', '#' + num(bnum(head))) +
+    stat('出块时间', '<span class="ago" data-ts="' + ts + '">' + ago(ts) + '</span>') +
+    stat('平均出块间隔', avg ? avg.toFixed(1) + ' <small>s</small>' : '—', '近 ' + diffs.length + ' 块') +
+    stat('近40块交易', num(txN), spark + '活跃地址 <b style="color:var(--fg)">' + addrs.size + '</b>') +
+    stat('出块者分布', Object.keys(wit).length + ' 个', witMini) +
+    '</div>';
+}
+function drawHome(){
+  const blocks = state.blocks;
+  const txs = collectTxs(blocks, 30);
+  const chips = typeChips(txs);
+  const oldest = blocks.length ? bnum(blocks[blocks.length - 1]) : 0;
+  const olderLink = oldest > 0
+    ? '<div class="pager"><a href="#/blocks/' + (oldest - 1) + '">更早区块 →</a>' +
+      '<a href="#/witness">见证人</a><a href="#/network">网络</a></div>'
+    : '';
+  let trows = '';
+  if (!txs.length) trows = '<tr><td colspan="6" class="empty">最近 40 个区块无交易</td></tr>';
+  for (const {bn, tx} of txs){
+    const i = txInfo(tx);
+    trows += '<tr>' +
+      '<td class="dim"><span class="ago" data-ts="' + i.ts + '">' + (i.ts ? ago(i.ts) : '—') + '</span></td>' +
+      '<td>' + typeBadge(i) + '</td>' +
+      '<td class="num">' + amountCell(i) + '</td>' +
+      '<td>' + addrLink(i.from) + ' <span class="dim">→</span> ' + addrLink(i.to) + '</td>' +
+      '<td><a href="#/block/' + bn + '">#' + num(bn) + '</a></td>' +
+      '<td>' + txLink(i.txID) + '</td>' +
+      '</tr>';
+  }
+  app.innerHTML =
+    homeStats() +
+    '<div class="card"><h2>最新区块 <span class="side">每 4 秒自动刷新</span></h2>' +
+    '<table>' + BLOCK_TH + '<tbody>' + blockRowsHtml(blocks) + '</tbody></table>' +
+    olderLink + '</div>' +
+    '<div class="card"><h2>最近交易 <span class="side">取自最近 40 块 · ' + chips + '</span></h2>' +
+    '<table><thead><tr><th>时间</th><th>类型</th><th class="num">金额</th><th>From → To</th><th>区块</th><th>TxID</th></tr></thead><tbody>' +
+    trows + '</tbody></table></div>';
+  statusDraw();
+}
+function refreshAges(){
+  document.querySelectorAll('.ago').forEach(el => { el.textContent = ago(Number(el.dataset.ts)); });
+}
+async function viewHome(){
+  await syncBlocks(true);
+  conn(true);
+  drawHome();
+  state.timer = setInterval(async () => {
+    try {
+      const changed = await syncBlocks(false);
+      conn(true);
+      if (changed) drawHome(); else { refreshAges(); statusDraw(); }
+    } catch (e){
+      conn(false, '连接失败');
+      banner('轮询失败：' + e.message + '（自动重试中…）');
+    }
+  }, 4000);
+}
+
+/* ---------- 历史区块列表（翻页） ---------- */
+async function viewBlocks(arg){
+  let start = /^\d+$/.test(arg) ? parseInt(arg, 10) : 0;
+  const now = await api('/wallet/getnowblock');
+  const height = now.block_header.raw_data.number;
+  start = Math.min(start, height);
+  const from = Math.max(0, start - 19);
+  const blocks = (await fetchBlocksRange(from, start)).reverse();
+  const nav = '<div class="pager">' +
+    (start + 20 <= height ? '<a href="#/blocks/' + (start + 20) + '">← 更新</a>' : '<span class="off">← 更新</span>') +
+    '<a href="#/">最新</a>' +
+    (from > 0 ? '<a href="#/blocks/' + (from - 1) + '">更早 →</a>' : '<span class="off">更早 →</span>') +
+    '<span class="cur">#' + num(from) + ' ~ #' + num(start) + '</span>' +
+    '</div>';
+  app.innerHTML =
+    '<div class="card"><h2>区块列表 <span class="side">共 ' + num(height + 1) + ' 块</span></h2>' +
+    '<table>' + BLOCK_TH + '<tbody>' + blockRowsHtml(blocks) + '</tbody></table>' +
+    nav + '</div>';
+}
+
+/* ---------- 区块详情 ---------- */
+async function viewBlock(arg){
+  let b;
+  if (/^\d+$/.test(arg)) b = await api('/wallet/getblockbynum', {num: parseInt(arg, 10)});
+  else b = await api('/wallet/getblockbyid', {value: arg});
+  const tip = (await api('/wallet/getnowblock')).block_header.raw_data.number;
+  const r = b.block_header.raw_data;
+  const ts = normTs(r.timestamp);
+  const txs = b.transactions || [];
+
+  let rows = '';
+  if (!txs.length) rows = '<tr><td colspan="6" class="empty">该区块无交易</td></tr>';
+  txs.forEach(tx => {
+    const i = txInfo(tx);
+    rows += '<tr>' +
+      '<td class="dim">' + (i.ts ? dt(i.ts) : dt(ts)) + '</td>' +
+      '<td>' + typeBadge(i) + '</td>' +
+      '<td class="num">' + amountCell(i) + '</td>' +
+      '<td>' + addrLink(i.from) + ' <span class="dim">→</span> ' + addrLink(i.to) + '</td>' +
+      '<td class="num dim">' + (i.fee ? i.fee : '—') + '</td>' +
+      '<td>' + txLink(i.txID || tx.txID) + '</td>' +
+      '</tr>';
+  });
+
+  const pager = '<div class="pager">' +
+    (r.number > 0 ? '<a href="#/block/' + (r.number - 1) + '">← 更早</a>' : '<span class="off">← 更早</span>') +
+    '<a href="#/">最新</a>' +
+    (r.number < tip ? '<a href="#/block/' + (r.number + 1) + '">更新 →</a>' : '<span class="off">更新 →</span>') +
+    '<span class="cur">#' + num(r.number) + ' / ' + num(tip) + '</span></div>';
+  app.innerHTML =
+    '<div class="card"><h2>区块 #' + num(r.number) +
+    '<a class="back" href="#/">← 返回首页</a></h2>' +
+    '<div class="kvlist">' +
+      '<div class="k">区块Hash</div><div class="v mono">' + esc(b.blockID) + '<button class="copy" onclick="copy(\'' + esc(b.blockID) + '\')">复制</button></div>' +
+      '<div class="k">父Hash</div><div class="v mono">' + (r.number > 0 ? '<a href="#/block/' + (r.number - 1) + '" title="' + esc(r.parentHash) + '">' + esc(short(r.parentHash, 14)) + '</a>' : esc(r.parentHash)) + '</div>' +
+      '<div class="k">出块者</div><div class="v">' + addrLink(r.witness_address) + ' <span class="dim mono">' + esc(r.witness_address) + '</span></div>' +
+      '<div class="k">时间</div><div class="v">' + dt(ts) + ' <span class="dim">(' + ago(ts) + ')</span></div>' +
+      '<div class="k">交易数</div><div class="v">' + txs.length + '</div>' +
+      '<div class="k">txTrieRoot</div><div class="v mono dim" style="font-size:12px">' + esc(r.txTrieRoot || '—') + '</div>' +
+      '<div class="k">见证签名</div><div class="v mono dim" style="font-size:12px">' + esc(short((b.block_header || {}).witness_signature, 24)) + '</div>' +
+    '</div>' +
+    '<details><summary>原始响应 JSON</summary><pre>' + esc(JSON.stringify(b, null, 2)) + '</pre></details>' +
+    '</div>' +
+    '<div class="card"><h2>区块交易</h2>' +
+    '<table><thead><tr><th>时间</th><th>类型</th><th class="num">金额</th><th>From → To</th><th class="num">费</th><th>TxID</th></tr></thead><tbody>' +
+    rows + '</tbody></table>' + pager + '</div>';
+}
+
+/* ---------- 交易详情 ---------- */
+async function viewTx(hash){
+  let t;
+  try {
+    t = await api('/wallet/gettransactionbyid', {value: hash});
+  } catch (e){
+    if (/not found/i.test(e.message)){
+      try {
+        const b = await api('/wallet/getblockbyid', {value: hash});
+        go('block/' + b.block_header.raw_data.number);
+        return;
+      } catch (e2){}
+    }
+    throw e;
+  }
+  const i = txInfo(t);
+  const conf = Number(t.confirmations || 0);
+  const badge = t.blockNumber > 0
+    ? (t.confirmed ? '<span class="badge g">已确认 · ' + conf + ' 确认</span>'
+                   : '<span class="badge a">确认中 · ' + conf + ' / 19</span>')
+    : '<span class="badge r">待打包 · 未上链</span>';
+  const rd = t.raw_data || {};
+
+  app.innerHTML =
+    '<div class="card"><h2>交易详情 ' + badge +
+    '<a class="back" href="#/">← 返回首页</a></h2>' +
+    '<div class="kvlist">' +
+      '<div class="k">TxID</div><div class="v mono">' + esc(t.txID) + '<button class="copy" onclick="copy(\'' + esc(t.txID) + '\')">复制</button></div>' +
+      '<div class="k">类型</div><div class="v">' + typeBadge(i) + (i.contract && i.contract !== 'TransferContract' ? ' <span class="dim mono">' + esc(i.contract) + '</span>' : '') + '</div>' +
+      '<div class="k">所在区块</div><div class="v">' + (t.blockNumber > 0 ? '<a href="#/block/' + t.blockNumber + '">#' + num(t.blockNumber) + '</a>' : '<span class="dim">未上链</span>') + '</div>' +
+      '<div class="k">时间</div><div class="v">' + (i.ts ? dt(i.ts) + ' <span class="dim">(' + ago(i.ts) + ')</span>' : '—') + '</div>' +
+      '<div class="k">From</div><div class="v">' + (i.from ? '<a class="mono" href="#/addr/' + esc(i.from) + '">' + esc(i.from) + '</a>' : '—') + '</div>' +
+      '<div class="k">To</div><div class="v">' + (i.to ? '<a class="mono" href="#/addr/' + esc(i.to) + '">' + esc(i.to) + '</a>' : '—') + '</div>' +
+      '<div class="k">金额</div><div class="v">' + amountCell(i) + (i.amount && i.type === 0 ? ' <span class="dim">AWC</span>' : '') + '</div>' +
+      '<div class="k">手续费</div><div class="v">' + (i.fee ? i.fee + ' <span class="dim">带宽点</span>' : '—') + '</div>' +
+      '<div class="k">Nonce</div><div class="v mono">' + (i.nonce != null ? i.nonce : '—') + '</div>' +
+      '<div class="k">过期时间</div><div class="v">' + (rd.expiration ? dt(normTs(rd.expiration)) : '—') + '</div>' +
+      '<div class="k">执行结果</div><div class="v">' + esc((((t.ret || [])[0] || {}).contractRet) || '—') + '</div>' +
+      '<div class="k">签名</div><div class="v mono dim" style="font-size:12px">' + esc(short(((t.signature || [])[0]) || '', 32)) + '</div>' +
+    '</div>' +
+    '<div class="hint">确认数 ≥ 19 视为最终确认（与共识判定一致）。</div>' +
+    '<details><summary>原始响应 JSON</summary><pre>' + esc(JSON.stringify(t, null, 2)) + '</pre></details>' +
+    '</div>';
+}
+
+/* ---------- 地址页 ---------- */
+async function viewAddr(addr){
+  const [acc, list, witResp] = await Promise.all([
+    api('/wallet/getaccount', {address: addr}),
+    api('/wallet/gettransactionsbyaddress', {address: addr, limit: 100}),
+    api('/wallet/listwitnesses', {}).catch(() => ({witnesses: []}))
+  ]);
+  const activated = !!acc.activated;
+  const exists = activated || Number(acc.balance || 0) > 0 || Number(acc.nonce || 0) > 0 || Number(acc.create_time || 0) > 0;
+  const ar = acc.account_resource || {};
+  const frozenBw = ar.frozen_balance_for_bandwidth || {};
+  const frozenEn = ar.frozen_balance_for_energy || {};
+
+  let stats = '<div class="stats">' +
+    '<div class="stat"><div class="l">余额</div><div class="v">' + awc(acc.balance) + ' <small>AWC</small></div></div>' +
+    '<div class="stat"><div class="l">状态</div><div class="v">' +
+      (activated ? '<span class="badge g">已激活</span>' : (exists ? '<span class="badge a">未激活</span>' : '<span class="badge r">无记录</span>')) +
+    '</div></div>' +
+    '<div class="stat"><div class="l">带宽（用量/上限）</div><div class="v">' + num(acc.net_usage) + ' <small>/ ' + num(acc.net_limit) + '</small></div></div>' +
+    '<div class="stat"><div class="l">交易次数 (nonce)</div><div class="v">' + num(acc.nonce) + '</div></div>' +
+    '</div>';
+
+  /* 冻结 / 投票 / 代理 明细 */
+  let extra = '';
+  const frozenRows = [];
+  if (Number(frozenBw.frozen_balance) > 0) frozenRows.push(['冻结 · 带宽', awc(frozenBw.frozen_balance) + ' AWC', frozenBw.expire_time ? '到期 ' + dt(normTs(frozenBw.expire_time)) : '']);
+  if (Number(frozenEn.frozen_balance) > 0) frozenRows.push(['冻结 · 能量', awc(frozenEn.frozen_balance) + ' AWC', frozenEn.expire_time ? '到期 ' + dt(normTs(frozenEn.expire_time)) : '']);
+  if (Number(acc.delegated_frozen_for_bandwidth) > 0) frozenRows.push(['已代出 · 带宽', num(acc.delegated_frozen_for_bandwidth), '']);
+  if (Number(acc.delegated_frozen_for_energy) > 0) frozenRows.push(['已代出 · 能量', num(acc.delegated_frozen_for_energy), '']);
+  if (Number(acc.received_delegated_bandwidth) > 0) frozenRows.push(['收到代理 · 带宽', num(acc.received_delegated_bandwidth), '']);
+  if (Number(acc.received_delegated_energy) > 0) frozenRows.push(['收到代理 · 能量', num(acc.received_delegated_energy), '']);
+  if (frozenRows.length){
+    extra += '<div class="card"><h2>冻结 / 资源代理</h2><table><thead><tr><th>项目</th><th class="num">数量</th><th>备注</th></tr></thead><tbody>' +
+      frozenRows.map(([k,v,n]) => '<tr><td>' + esc(k) + '</td><td class="num"><b>' + esc(v) + '</b></td><td class="dim">' + esc(n) + '</td></tr>').join('') +
+      '</tbody></table></div>';
+  }
+  const votes = Array.isArray(acc.votes) ? acc.votes.filter(v => v && (v.vote_count || v.vote_address)) : [];
+  if (votes.length || Number(acc.vote_power) > 0){
+    const maxV = Math.max(1, ...votes.map(v => Number(v.vote_count || 0)));
+    const rows = votes.map(v => {
+      const c = Number(v.vote_count || 0);
+      const pct = Math.round(c / maxV * 100);
+      return '<tr><td>' + addrLink(v.vote_address) + '</td>' +
+        '<td class="num"><b>' + num(c) + '</b></td>' +
+        '<td><span class="barbg"><span class="bar" style="width:' + pct + '%"></span></span></td></tr>';
+    }).join('');
+    extra += '<div class="card"><h2>投票 <span class="side">投票力 ' + num(acc.vote_power) +
+      ' · 已用 ' + num(acc.vote_power_available === 0 && acc.votes_used ? acc.votes_used : (Number(acc.vote_power||0) - Number(acc.vote_power_available||0))) +
+      ' · 可用 ' + num(acc.vote_power_available) + '</span></h2>' +
+      (rows ? '<table><thead><tr><th>候选人</th><th class="num">票数</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>'
+            : '<div class="empty">未投票</div>') + '</div>';
+  }
+
+  const hitW = (witResp.witnesses || []).find(x => sameAddr(x.address, addr));
+  const srBadge = hitW ? ' <a href="#/witness"><span class="badge p">SR #' + (hitW.rank || '?') +
+    ' · ' + num(hitW.voteCount) + ' 票</span></a>' : '';
+
+  const data = (list && list.data) || [];
+  const typeCount = {};
+  let inSum = 0, outSum = 0;
+  for (const tx of data){
+    const tn = TYPE_ZH[tx.type_name] || tx.type_name || '交易';
+    typeCount[tn] = (typeCount[tn] || 0) + 1;
+    const a = Number(tx.amount || 0);
+    if (a > 0){ if (sameAddr(tx.to, addr)) inSum += a; else outSum += a; }
+  }
+  const tcChips = Object.entries(typeCount).map(([k,v]) =>
+    '<span class="badge b">' + esc(k) + ' ×' + v + '</span>').join(' ') || '—';
+  const txStatsCard = data.length ?
+    '<div class="card"><h2>交易统计 <span class="side">基于最近 ' + data.length + ' 笔</span></h2>' +
+    '<div class="kvlist">' +
+      '<div class="k">收到总额</div><div class="v"><b class="amt-in">+' + awc(inSum) + '</b> <span class="dim">AWC</span></div>' +
+      '<div class="k">付出总额</div><div class="v"><b class="amt-out">−' + awc(outSum) + '</b> <span class="dim">AWC</span></div>' +
+      '<div class="k">类型分布</div><div class="v">' + tcChips + '</div>' +
+    '</div></div>' : '';
+
+  let rows = '';
+  if (!data.length) rows = '<tr><td colspan="6" class="empty">' + (exists ? '该地址暂无交易记录' : '该地址尚无任何记录（等待首笔转账激活）') + '</td></tr>';
+  for (const tx of data){
+    const incoming = sameAddr(tx.to, addr);
+    const dir = incoming ? '<span class="badge g">收</span>' : '<span class="badge r">付</span>';
+    const other = incoming ? tx.from : tx.to;
+    const amtCls = incoming ? 'amt-in' : 'amt-out';
+    const sign = incoming ? '+' : '−';
+    const typeName = TYPE_ZH[tx.type_name] || tx.type_name || '交易';
+    let amt;
+    if (tx.type === 3) amt = '<span class="' + amtCls + '">' + sign + num(tx.amount) + ' 票</span>';
+    else if (Number(tx.amount) > 0) amt = '<span class="' + amtCls + '">' + sign + awc(tx.amount) + '</span>';
+    else amt = '<span class="dim">—</span>';
+    rows += '<tr>' +
+      '<td class="dim"><span class="ago" data-ts="' + normTs(tx.timestamp) + '">' + ago(normTs(tx.timestamp)) + '</span></td>' +
+      '<td>' + dir + ' <span class="badge">' + esc(typeName) + '</span></td>' +
+      '<td class="num">' + amt + '</td>' +
+      '<td>' + addrLink(other) + '</td>' +
+      '<td class="num dim">' + (tx.fee || '—') + '</td>' +
+      '<td>' + txLink(tx.txID) + '</td>' +
+      '</tr>';
+  }
+
+  app.innerHTML =
+    '<div class="card"><h2>地址 <span class="mono" style="font-size:13px">' + esc(addr) + '</span>' +
+    '<button class="copy" onclick="copy(\'' + esc(addr) + '\')">复制</button>' + srBadge +
+    '<a class="back" href="#/">← 返回首页</a></h2>' + stats +
+    (exists ? '<div class="kvlist">' +
+              '<div class="k">创建时间</div><div class="v">' + (acc.create_time ? dt(normTs(acc.create_time)) : '—') + '</div>' +
+              '<div class="k">冻结带宽总量</div><div class="v">' + num(acc.total_frozen_for_bandwidth || 0) + '</div>' +
+              '<div class="k">冻结能量总量</div><div class="v">' + num(acc.total_frozen_for_energy || 0) + '</div>' +
+              '</div>' : '') +
+    '</div>' + extra + txStatsCard +
+    '<div class="card"><h2>交易记录 <span class="side">最近 ' + (data.length || 0) + ' 条</span></h2>' +
+    '<table><thead><tr><th>时间</th><th>方向/类型</th><th class="num">金额</th><th>对方</th><th class="num">费</th><th>TxID</th></tr></thead><tbody>' +
+    rows + '</tbody></table></div>';
+  statusDraw();
+}
+
+/* ---------- 见证人页 ---------- */
+async function viewWitness(){
+  const w = await api('/wallet/listwitnesses', {});
+  const list = (w.witnesses || []).slice().sort((a,b) => (a.rank||0) - (b.rank||0));
+  const height = (await api('/wallet/getnowblock')).block_header.raw_data.number;
+  const from = Math.max(0, height - 29);
+  const recent = await fetchBlocksRange(from, height);
+  const produced = {};
+  for (const b of recent){ const a = bwit(b); produced[a] = (produced[a]||0) + 1; }
+  const totalVotes = list.reduce((s,x) => s + Number(x.voteCount || 0), 0);
+  const maxVote = Math.max(1, ...list.map(x => Number(x.voteCount || 0)));
+
+  const stat = (l, v) => '<div class="stat"><div class="l">' + l + '</div><div class="v">' + v + '</div></div>';
+  const stats = '<div class="stats">' +
+    stat('活跃见证人', num(w.active_count) + ' <small>/ ' + list.length + '</small>') +
+    stat('当前 Epoch', num(w.epoch)) +
+    stat('总票数', num(totalVotes)) +
+    stat('注册费', awc(w.registration_fee) + ' <small>AWC</small>') +
+    '</div>';
+
+  let rows = '';
+  if (!list.length) rows = '<tr><td colspan="7" class="empty">无见证人</td></tr>';
+  for (const x of list){
+    const pct = Math.round(Number(x.voteCount || 0) / maxVote * 100);
+    const p = produced[x.address] || 0;
+    rows += '<tr>' +
+      '<td class="num"><b>' + (x.rank || '—') + '</b></td>' +
+      '<td>' + addrLink(x.address) + '</td>' +
+      '<td class="dim">' + esc(x.url || '') + '</td>' +
+      '<td class="num"><b>' + num(x.voteCount) + '</b>' +
+        '<span class="barbg"><span class="bar" style="width:' + pct + '%"></span></span></td>' +
+      '<td class="num">' + (p ? '<b>' + p + '</b>' : '<span class="dim">0</span>') + ' <span class="dim">/30</span></td>' +
+      '<td class="num dim">' + num(x.totalProduced) + ' / ' + num(x.totalMissed) + '</td>' +
+      '<td>' + (x.active ? '<span class="badge g">活跃</span>' : '<span class="badge r">非活跃</span>') +
+        (x.isJobs ? ' <span class="badge b">在岗</span>' : '') + '</td>' +
+      '</tr>';
+  }
+  app.innerHTML =
+    '<div class="card"><h2>见证人 (SR) <span class="side">近30块出块数为页面实时统计</span>' +
+    '<a class="back" href="#/">← 返回首页</a></h2>' + stats +
+    '<table><thead><tr><th class="num">排名</th><th>地址</th><th>名称</th><th class="num">票数</th><th class="num">近30块出块</th><th class="num">累计出块/漏块</th><th>状态</th></tr></thead><tbody>' +
+    rows + '</tbody></table>' +
+    '<div class="hint">票数占比条按当前最高票归一；累计出块/漏块取自链上见证人注册数据（本链为手动维护字段，可能长期为 0，实时出块看「近30块出块」列）。</div>' +
+    '</div>';
+}
+
+/* ---------- 网络页 ---------- */
+async function viewNetwork(){
+  const info = await api('/wallet/getnodeinfo', {});
+  const ci = info.configNodeInfo || {};
+  const stat = (l, v) => '<div class="stat"><div class="l">' + l + '</div><div class="v">' + v + '</div></div>';
+  let stats = '<div class="stats">' +
+    stat('节点高度', '#' + num(info.block)) +
+    stat('活跃连接', num(info.activeConnectCount) + ' <small>/ 当前 ' + num(info.currentConnectCount) + '</small>') +
+    stat('监听端口', esc(String(ci.listenPort || '—'))) +
+    stat('P2P 版本', esc(ci.p2pVersion || '—')) +
+    '</div>';
+
+  let restCard;
+  try {
+    const st = await restApi('/api/p2p/status');
+    const peersResp = await restApi('/api/p2p/peers');
+    const peers = (peersResp && peersResp.peers) || [];
+    let rows = '';
+    if (!peers.length) rows = '<tr><td colspan="5" class="empty">无对等节点</td></tr>';
+    for (const p of peers){
+      const dh = Number(info.block || 0) - Number(p.height || 0);
+      const dHtml = dh === 0 ? '<span class="badge g">同步</span>'
+        : dh > 0 ? '<span class="badge a">落后 ' + num(dh) + '</span>'
+        : '<span class="badge b">领先 ' + num(-dh) + '</span>';
+      const last = p.last_seen ? new Date(p.last_seen).getTime() : 0;
+      rows += '<tr>' +
+        '<td class="mono">' + esc(p.host) + ':' + esc(p.port) + '</td>' +
+        '<td>' + (p.direction === 'inbound' ? '<span class="badge b">入站</span>' : '<span class="badge p">出站</span>') + '</td>' +
+        '<td class="num">#' + num(p.height) + '</td>' +
+        '<td>' + dHtml + '</td>' +
+        '<td class="dim">' + (last ? ago(last) : esc(p.status || '—')) + '</td>' +
+        '</tr>';
+    }
+    restCard =
+      '<div class="card"><h2>P2P 状态 <span class="side">REST ' + esc(restBase()) + '</span></h2>' +
+      '<div class="kvlist">' +
+        '<div class="k">监听地址</div><div class="v mono">' + esc(st.address || '—') + '</div>' +
+        '<div class="k">节点ID</div><div class="v mono">' + esc(short(st.node_id, 16)) + ' <button class="copy" onclick="copy(\'' + esc(st.node_id || '') + '\')">复制</button></div>' +
+        '<div class="k">运行状态</div><div class="v">' + (st.running ? '<span class="badge g">运行中</span>' : '<span class="badge r">已停止</span>') + ' · 对等节点 <b>' + num(st.peers) + '</b></div>' +
+      '</div>' +
+      '<h2 style="margin-top:14px">对等节点 <span class="side">' + peers.length + ' 个</span></h2>' +
+      '<table><thead><tr><th>节点</th><th>方向</th><th class="num">对端高度</th><th>差异</th><th>最近活跃</th></tr></thead><tbody>' +
+      rows + '</tbody></table></div>';
+  } catch (e){
+    restCard = '<div class="card"><h2>P2P 状态</h2>' +
+      '<div class="empty">REST 接口不可达：' + esc(e.message) +
+      '<div class="hint">REST = RPC 端口 − 100（当前 ' + esc(restBase() || '无法推导') + '）。' +
+      '浏览器跨端口调用需要节点 ≥ b27（已加 CORS）；请确认节点已重启且该端口开放。</div></div></div>';
+  }
+
+  const params = await api('/wallet/getchainparameters', {});
+  const pRows = (params.chainParameter || []).map(p =>
+    '<tr><td>' + esc(P_ZH[p.key] || p.key) +
+    '<br><span class="dim mono" style="font-size:11px">' + esc(p.key) + '</span></td>' +
+    '<td class="num mono">' + num(p.value) + '</td></tr>').join('');
+  const paramsCard = '<div class="card"><h2>链参数 <span class="side">/wallet/getchainparameters</span></h2>' +
+    '<table><thead><tr><th>参数</th><th class="num">值</th></tr></thead><tbody>' +
+    (pRows || '<tr><td colspan="2" class="empty">无参数</td></tr>') + '</tbody></table></div>';
+
+  app.innerHTML =
+    '<div class="card"><h2>本节点 <span class="side">' + esc(RPC) + '</span>' +
+    '<a class="back" href="#/">← 返回首页</a></h2>' + stats +
+    '<div class="kvlist" style="margin-top:6px">' +
+      '<div class="k">代码版本</div><div class="v">' + esc(ci.codeVersion || '—') + '</div>' +
+      '<div class="k">发现协议</div><div class="v">' + (ci.discoverEnable ? '开启' : '关闭') + ' · 最大连接 ' + num(ci.maxConnectCount) + '</div>' +
+      '<div class="k">运行时</div><div class="v">' + esc(info.javaVersion || '—') + '</div>' +
+    '</div></div>' + restCard + paramsCard;
+}
+
+/* ---------- 资产页（代币 / 本地钱包 / 智能合约） ---------- */
+async function viewAssets(){
+  const SCAN = 50;
+  const [tok, info, now] = await Promise.all([
+    api('/wallet/gettokenlist', {}),
+    api('/wallet/getnodeinfo', {}),
+    api('/wallet/getnowblock')
+  ]);
+  const height = now.block_header.raw_data.number;
+  const recent = await fetchBlocksRange(Math.max(0, height - SCAN + 1), height);
+  const tokActs = [], ctrActs = [];
+  for (const b of recent){
+    for (const tx of (b.transactions || [])){
+      const i = txInfo(tx);
+      const rec = {bn: bnum(b), tx, i};
+      if (i.type === 9 || i.type === 10) tokActs.push(rec);
+      if (i.type === 4 || i.type === 5) ctrActs.push(rec);
+    }
+  }
+  const ACT_TH = '<thead><tr><th>类型</th><th class="num">数量</th><th>From → To</th><th>时间</th><th>区块</th><th>TxID</th></tr></thead>';
+  const actRows = (arr, emptyText) => {
+    if (!arr.length) return '<tr><td colspan="6" class="empty">' + emptyText + '</td></tr>';
+    return arr.map(({bn, tx, i}) =>
+      '<tr><td>' + typeBadge(i) + '</td>' +
+      '<td class="num">' + amountCell(i) + '</td>' +
+      '<td>' + addrLink(i.from) + ' <span class="dim">→</span> ' + addrLink(i.to) + '</td>' +
+      '<td class="dim">' + (i.ts ? ago(i.ts) : '—') + '</td>' +
+      '<td><a href="#/block/' + bn + '">#' + num(bn) + '</a></td>' +
+      '<td>' + txLink(i.txID) + '</td></tr>').join('');
+  };
+
+  /* 代币卡 —— 仅 TronRPC，不依赖 REST */
+  const tokens = (tok.tokens || []);
+  const tokRows = tokens.map(t =>
+    '<tr><td><b>' + esc(t.name || '—') + '</b> <span class="dim">' + esc(t.symbol || '') + '</span></td>' +
+    '<td class="mono">' + esc(short(t.token_id, 8)) + '</td>' +
+    '<td class="num"><b>' + num(t.total_supply) + '</b>' + (t.decimals ? ' <span class="dim">d=' + t.decimals + '</span>' : '') + '</td>' +
+    '<td>' + (t.issuer ? addrLink(t.issuer) : '—') + '</td></tr>').join('');
+  const tokCard =
+    '<div class="card"><h2>代币资产 <span class="side">/wallet/gettokenlist</span></h2>' +
+    (tokens.length
+      ? '<table><thead><tr><th>名称/符号</th><th>TokenID</th><th class="num">总量</th><th>发行人</th></tr></thead><tbody>' + tokRows + '</tbody></table>'
+      : '<div class="empty">链上暂无发行代币 —— 链已支持 TxType9 创建 / TxType10 转账<br><span class="dim" style="font-size:12px">创建：<span class="mono">/wallet/createassetissue</span> · 转账：<span class="mono">/wallet/transferasset</span></span></div>') +
+    '<h2 style="margin-top:16px">最近代币活动 <span class="side">近 ' + SCAN + ' 块</span></h2>' +
+    '<table>' + ACT_TH + '<tbody>' + actRows(tokActs, '近 ' + SCAN + ' 块无代币发行/转账') + '</tbody></table>' +
+    '</div>';
+
+  /* 本地钱包 + 智能合约 —— 依赖 REST（b27） */
+  let walletsCard = '', contractsCard = '';
+  let walletCount = null, contractCount = null;
+  try {
+    const [wl, cl] = await Promise.all([restApi('/api/wallet/list'), restApi('/api/contract/list')]);
+    const ws = (wl && wl.wallets) || [];
+    walletCount = ws.length;
+    const details = await Promise.all(ws.map(w => Promise.all([
+      api('/wallet/getaccount', {address: w.address}),
+      api('/wallet/getassetissuebyaccount', {address: w.address})
+    ])));
+    const wRows = ws.map((w, idx) => {
+      const acc = details[idx][0] || {};
+      const hold = (details[idx][1] && details[idx][1].asset) || [];
+      const holdHtml = hold.length
+        ? hold.map(a => esc(short(a.token_id, 6)) + ' ×' + num(a.balance)).join('<br>')
+        : '<span class="dim">—</span>';
+      return '<tr><td>' + addrLink(w.address) +
+        (acc.activated ? '' : ' <span class="badge a">未激活</span>') + '</td>' +
+        '<td class="num"><b>' + awc(acc.balance) + '</b></td>' +
+        '<td class="num dim">' + num(acc.nonce) + '</td>' +
+        '<td>' + holdHtml + '</td></tr>';
+    }).join('');
+    walletsCard = '<div class="card"><h2>本地钱包 <span class="side">keystore 地址 · 不含私钥 · 余额/持仓实时查询</span></h2>' +
+      '<table><thead><tr><th>地址</th><th class="num">余额 (AWC)</th><th class="num">交易次数</th><th>代币持仓</th></tr></thead><tbody>' +
+      (wRows || '<tr><td colspan="4" class="empty">无本地钱包</td></tr>') + '</tbody></table></div>';
+
+    const cs = (cl && cl.contracts) || [];
+    contractCount = cs.length;
+    const cRows = cs.map(c => {
+      const codeLen = (c.code || '').length;
+      const sKeys = c.storage ? Object.keys(c.storage).length : 0;
+      return '<tr><td class="mono">' + addrLink(c.address || '') + '</td>' +
+        '<td>' + addrLink(c.owner || '') + '</td>' +
+        '<td class="num">' + awc(c.balance) + '</td>' +
+        '<td class="num dim">' + num(c.gas_used) + ' / ' + num(c.gas_limit) + '</td>' +
+        '<td class="num dim">' + num(codeLen) + ' B · ' + sKeys + ' 键</td></tr>';
+    }).join('');
+    const ci = info.configNodeInfo || {};
+    const vmChips =
+      (Number(ci.allowCreationOfContracts) ? '<span class="badge g">合约创建 开</span>' : '<span class="badge r">合约创建 关</span>') +
+      (Number(ci.allowAdaptiveEnergy) ? ' <span class="badge g">自适应能量 开</span>' : ' <span class="badge r">自适应能量 关</span>');
+    contractsCard = '<div class="card"><h2>智能合约 <span class="side">' + vmChips + '</span></h2>' +
+      (cs.length
+        ? '<table><thead><tr><th>合约地址</th><th>创建者</th><th class="num">余额</th><th class="num">Gas 用量/上限</th><th class="num">代码/存储</th></tr></thead><tbody>' + cRows + '</tbody></table>'
+        : '<div class="empty">链上暂无部署合约<br><span class="dim" style="font-size:12px">部署：<span class="mono">POST /api/contract/deploy</span> 或 <span class="mono">/wallet/deploycontract</span></span></div>') +
+      '<h2 style="margin-top:16px">最近合约活动 <span class="side">近 ' + SCAN + ' 块</span></h2>' +
+      '<table>' + ACT_TH + '<tbody>' + actRows(ctrActs, '近 ' + SCAN + ' 块无部署/调用交易') + '</tbody></table>' +
+      '<div class="hint">接口字段详见 <a href="API_DOCUMENTATION.md">API_DOCUMENTATION.md</a>；本卡（含钱包/合约列表）依赖 REST，要求节点 ≥ b27。</div>' +
+      '</div>';
+  } catch (e){
+    walletsCard = '';
+    contractsCard = '<div class="card"><h2>本地钱包 / 智能合约</h2><div class="empty">REST 接口不可达：' + esc(e.message) +
+      '<div class="hint">REST = RPC 端口 − 100（当前 ' + esc(restBase() || '无法推导') +
+      '）；浏览器跨端口调用需节点 ≥ b27（已加 CORS）。上方代币与活动区不依赖 REST，照常显示。</div></div></div>';
+  }
+
+  const stat = (l, v) => '<div class="stat"><div class="l">' + l + '</div><div class="v">' + v + '</div></div>';
+  app.innerHTML =
+    '<div class="card"><h2>资产总览 <span class="side">' + esc(RPC) + ' · 高度 #' + num(height) + '</span>' +
+    '<a class="back" href="#/">← 返回首页</a></h2><div class="stats">' +
+      stat('发行代币', num(tokens.length)) +
+      stat('本地钱包', walletCount == null ? '<span class="dim">—</span>' : num(walletCount)) +
+      stat('部署合约', contractCount == null ? '<span class="dim">—</span>' : num(contractCount)) +
+      stat('近50块活动', (tokActs.length + ctrActs.length) + ' <small>代币 ' + tokActs.length + ' · 合约 ' + ctrActs.length + '</small>') +
+    '</div></div>' +
+    tokCard + walletsCard + contractsCard;
+}
+
+/* ---------- 搜索 ---------- */
+function doSearch(){
+  const q = document.getElementById('q').value.trim();
+  if (!q){ return; }
+  if (/^\d+$/.test(q)) go('block/' + q);
+  else if (/^[0-9a-fA-F]{64}$/.test(q)) go('tx/' + q.toLowerCase());
+  else if (/^T[1-9A-HJ-NP-Za-km-z]{25,34}$/.test(q)) go('addr/' + q);
+  else banner('无法识别「' + q + '」：支持区块高度 / 64位Hash / T开头地址');
+}
+
+/* ---------- 启动 ---------- */
+document.getElementById('rpcInput').value = RPC;
+document.getElementById('rpcInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') setRpc(e.target.value.trim());
+});
+route();
+</script>
+</body>
+</html>
