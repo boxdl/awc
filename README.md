@@ -40,8 +40,10 @@ https://<your-username>.github.io/<repo>/explorer.html
 
 ## RPC configuration
 
-- Defaults to `http://mc.wanys.xyz:8900`; switch nodes from the top-right control (persisted in localStorage)
-- Works from `file://` (node CORS is `*`)
+- Defaults to `https://mc.wanys.xyz:8901` — an HTTPS gateway (nginx) in front of the node's `:8900`; REST is auto-derived as `:8801` (the `REST = RPC − 100` rule still holds). Switch nodes from the top-right control (persisted in localStorage)
+- **Why HTTPS**: GitHub Pages is served over `https://`, and browsers block `http://` calls from such a page as mixed content
+- **First visit**: the gateway uses a self-signed certificate — open `https://mc.wanys.xyz:8901` once in your browser and accept the warning (Advanced → Proceed), after which this page will fetch normally
+- Works from `file://` (CORS `*`)
 - Requires a modern browser (BigInt etc. — any Chrome/Edge/Firefox/Safari from the last two years)
 
 ## API dependencies
@@ -51,7 +53,7 @@ All data is read-only, from two endpoint groups:
 | Type | Address | Used for |
 |---|---|---|
 | TronRPC | RPC port (e.g. `:8900`) | `/wallet/*` — blocks, txs, accounts, witnesses, chain params, tokens |
-| REST | **RPC port − 100** (e.g. `:8800`) | `/api/*` — P2P peers, local wallets, contract list |
+| REST | **RPC port − 100** (e.g. `8800`, or `8801` behind the HTTPS gateway) | `/api/*` — P2P peers, local wallets, contract list |
 
 Compatibility:
 

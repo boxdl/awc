@@ -88,7 +88,7 @@
     <div class="row">
       <div class="grow">
         <label>TRON RPC 地址</label>
-        <input id="rpc" class="mono" value="http://127.0.0.1:8900" spellcheck="false">
+        <input id="rpc" class="mono" value="https://mc.wanys.xyz:8901" spellcheck="false">
       </div>
       <div>
         <label>轮询间隔（秒）</label>
@@ -101,7 +101,7 @@
     <div class="chips">
       <span class="chip" data-rpc="http://127.0.0.1:8900">主节点 :8900</span>
       <span class="chip" data-rpc="http://127.0.0.1:8300">sr1 :8300</span>
-      <span class="chip" data-rpc="http://mc.wanys.xyz:8900">mc 公网</span>
+      <span class="chip" data-rpc="https://mc.wanys.xyz:8901">mc 公网 HTTPS</span>
     </div>
   </section>
 
@@ -226,7 +226,7 @@
   const ME_TYPES = new Set([0]);      // type=0 transfer 计入收款
 
   let recv = localStorage.getItem('awc_recv') || 'TArgPbSneb3BGCdb1zZYGaqLZ7HfpBhQkM';
-  let rpc  = localStorage.getItem('awc_rpc')  || 'http://127.0.0.1:8900';
+  let rpc  = localStorage.getItem('awc_rpc_v2')  || 'https://mc.wanys.xyz:8901';
   let timer = null;
   let seenTx = new Set();             // 已见过的交易
   let baseBalance = null;             // 打开页面时的余额
@@ -427,7 +427,7 @@
 
   $('btnApply').onclick = () => {
     rpc = $('rpc').value.trim();
-    localStorage.setItem('awc_rpc', rpc);
+    localStorage.setItem('awc_rpc_v2', rpc);
     started = false; baseBalance = null;
     restart();
   };

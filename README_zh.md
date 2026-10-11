@@ -40,8 +40,10 @@ https://<你的用户名>.github.io/<仓库名>/explorer.html
 
 ## RPC 配置
 
-- 默认连接 `http://mc.wanys.xyz:8900`，页面右上角可切换节点（公网 / 本地）并记忆（localStorage）
-- 支持 `file://` 直接打开（节点 CORS 为 `*`）
+- 默认连接 `https://mc.wanys.xyz:8901` —— 节点 `:8900` 前面的 HTTPS 网关（nginx 反代 + 自签证书）；REST 自动推导为 `:8801`（`REST = RPC − 100` 规则不变）。页面右上角可切换节点并记忆（localStorage）
+- **为什么用 HTTPS**：GitHub Pages 是 `https://`，页面里直接请求 `http://` 节点会被浏览器按**混合内容**拦截
+- **首次访问需信任证书**：先在浏览器打开 `https://mc.wanys.xyz:8901`，提示不安全时点「高级 → 继续访问」信任一次，之后本页（GitHub Pages / `file://`）即可正常调用
+- 支持 `file://` 直接打开（CORS `*`）
 - 需要现代浏览器（使用 BigInt 等特性，Chrome/Edge/Firefox/Safari 近两年版本均可）
 
 ## 接口依赖
@@ -51,7 +53,7 @@ https://<你的用户名>.github.io/<仓库名>/explorer.html
 | 类型 | 地址 | 用途 |
 |---|---|---|
 | TronRPC | RPC 端口（如 `:8900`） | `/wallet/*`：区块、交易、账户、见证人、链参数、代币 |
-| REST | **RPC 端口 − 100**（如 `:8800`） | `/api/*`：P2P 节点表、本地钱包、合约列表 |
+| REST | **RPC 端口 − 100**（如 `8800`；HTTPS 网关下为 `8801`） | `/api/*`：P2P 节点表、本地钱包、合约列表 |
 
 兼容性：
 

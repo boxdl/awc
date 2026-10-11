@@ -37,11 +37,20 @@ AWC-Chain 是一个基于 DPoS 共识的区块链项目，包含：
 http://127.0.0.1:8900
 ```
 
+公网 HTTPS 网关（nginx 反代 + 自签证书）：GitHub Pages 是 `https://`，页面内直接请求 `http://` 节点会被浏览器按**混合内容**拦截，故提供同端口差规则的 HTTPS 入口：
+
+| 节点 | HTTPS TronRPC | HTTPS REST | 上游 | 说明 |
+|---|---:|---:|---|---|
+| 主节点 | `https://mc.wanys.xyz:8901` | `https://mc.wanys.xyz:8801` | `127.0.0.1:8900` / `127.0.0.1:8800` | 路由器需开放 8901、8801 两个端口转发；`REST = RPC − 100` 规则不变（8901−100=8801） |
+
+- 证书自签（CN=`mc.wanys.xyz`，SAN 含 `222.242.112.92`，有效期 10 年）：浏览器**首次访问** `https://mc.wanys.xyz:8901` 需「高级 → 继续访问」信任一次，之后 GitHub Pages / `file://` 页面即可正常调用
+- 节点本体不受影响，HTTPS 网关只是端口转发层（nginx `sites-available/mc-tls-https.conf`）
+
 ### 配套收款测试页
 
 仓库根目录 `payment-test.html` 是一个零依赖单文件网页，直接用浏览器打开即可：
 
-- 填入 RPC 地址（默认 `http://127.0.0.1:8900`），3 秒轮询余额、带宽、节点高度
+- 填入 RPC 地址（默认 `https://mc.wanys.xyz:8901`，localStorage 键 `awc_rpc_v2`），3 秒轮询余额、带宽、节点高度
 - 展示收款地址 + 二维码 + 一键复制，实时监听新到账交易（到账横幅 + 提示音 + 会话累计）
 - 期望金额提醒：填入目标金额，累计达标后大字提示
 - 内置发送测试：填私钥签名广播一笔，闭环验证"发出 → 出块 → 监听到账"
@@ -59,7 +68,7 @@ http://127.0.0.1:8900
 - 见证人页 `#/witness`（`/wallet/listwitnesses`）：活跃数 / epoch / 总票数 / 注册费统计 + SR 列表（排名、票数占比条、**近30块实时出块数**、累计出块/漏块、在岗状态）
 - 网络页 `#/network`：本节点信息（`/wallet/getnodeinfo`：高度、连接数、监听端口、P2P版本）+ P2P 对等节点表（REST `/api/p2p/status` + `/api/p2p/peers`：节点ID、入站/出站、对端高度与本节点差异、最近活跃）+ **链参数表**（`/wallet/getchainparameters`，27 项，中文标签+原始 key）
 - 搜索框自动识别：纯数字 → 区块高度；64 位 hex → 交易（失败转区块）；`T` 开头 → 地址
-- RPC 默认连接公网 `http://mc.wanys.xyz:8900`，可切换本地节点并记忆（localStorage 键 `awc_exp_rpc_v2`），与 `payment-test.html` 一致支持 `file://` 直接打开（节点 CORS `*`）
+- RPC 默认连接公网 HTTPS `https://mc.wanys.xyz:8901`（localStorage 键 `awc_exp_rpc_v3`；GitHub Pages 为 `https://`，同协议避免浏览器混合内容拦截，首次需信任自签证书），可切换本地节点并记忆，与 `payment-test.html` 一致支持 `file://` 直接打开（CORS `*`）
 - 资产页 `#/assets`（独立页，网络页不再塞这些）：
   - **资产总览**：发行代币 / 本地钱包 / 部署合约 / 近50块活动 计数
   - **代币资产**：`/wallet/gettokenlist` 表（名称/符号/TokenID/总量/精度/发行人）+ **近50块代币活动**扫描（TxType9 创建、10 转账）；空态给出 `/wallet/createassetissue`、`/wallet/transferasset` 创建指引

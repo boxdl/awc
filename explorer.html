@@ -114,7 +114,7 @@ footer{text-align:center;color:#4a566b;font-size:12px;margin-top:30px}
   <div class="rpcbar">
     <span class="dim" style="font-size:12px">节点</span>
     <input id="rpcInput" spellcheck="false">
-    <button class="chip" onclick="setRpc('http://mc.wanys.xyz:8900')">公网</button>
+    <button class="chip" onclick="setRpc('https://mc.wanys.xyz:8901')">公网HTTPS</button>
     <button class="chip" onclick="setRpc('http://127.0.0.1:8900')">本地主</button>
     <button class="chip" onclick="setRpc('http://127.0.0.1:8300')">本地sr1</button>
   </div>
@@ -144,8 +144,8 @@ footer{text-align:center;color:#4a566b;font-size:12px;margin-top:30px}
 <script>
 'use strict';
 const UNITS = 100;
-/* 默认连公网节点；键名带版本，旧版存的 localhost 默认值不会盖掉新默认 */
-let RPC = localStorage.getItem('awc_exp_rpc_v2') || 'http://mc.wanys.xyz:8900';
+/* 默认连公网 HTTPS（GitHub Pages 是 https，必须同协议否则浏览器拦截混合内容）；键名带版本，旧存值不会盖掉新默认 */
+let RPC = localStorage.getItem('awc_exp_rpc_v3') || 'https://mc.wanys.xyz:8901';
 const app = document.getElementById('app');
 const state = { height: 0, blocks: [], timer: null, init: false };
 
@@ -262,7 +262,7 @@ async function restApi(path){
 }
 function setRpc(u){
   RPC = u.replace(/\/+$/, '');
-  localStorage.setItem('awc_exp_rpc_v2', RPC);
+  localStorage.setItem('awc_exp_rpc_v3', RPC);
   document.getElementById('rpcInput').value = RPC;
   state.height = 0; state.blocks = []; state.init = false;
   banner('');
